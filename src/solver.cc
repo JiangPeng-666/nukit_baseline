@@ -34,12 +34,10 @@ namespace planning{
                     phy_sim.obstacle_set());
   bp_manager_.Init(bp_config_path);
   ssc_planner_.Init(ssc_config_path);
-  auto map_ptr = std::make_shared<semantic_map_manager::SemanticMapManager>(smm_);
-  map_adapter_.set_map(map_ptr);
-  ssc_planner_.set_map_interface(&map_adapter_);
 
   // behavior planning
   printf("Behavior planning begins.------------------------\n");
+  auto map_ptr = std::make_shared<semantic_map_manager::SemanticMapManager>(smm_);
   task_.user_perferred_behavior = 0;
   task_.user_desired_vel = desired_vel;
   task_.is_under_ctrl = true;
@@ -51,6 +49,7 @@ namespace planning{
 
   // motion planning
   printf("Motion planning begins.--------------------------\n");
+  map_ptr = std::make_shared<semantic_map_manager::SemanticMapManager>(smm_);
   map_adapter_.set_map(map_ptr);
   ssc_planner_.set_map_interface(&map_adapter_);
   ssc_planner_.RunOnce();
