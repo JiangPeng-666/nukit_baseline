@@ -35,9 +35,10 @@ class Solver{
   using DcpLonAction = DcpTree::DcpLonAction;
   using DcpLatAction = DcpTree::DcpLatAction;
 
-  struct Config {
-    int kInputBufferSize{100};
-  };
+  int ego_id;
+
+  Solver();
+
   std::vector<std::vector<double>> solver(int ego_id, std::string agent_config_path, std::string bp_config_path, 
     std::string ssc_config_path, std::string vehicle_info_path, std::string map_path, std::string lane_net_path,
     double desired_vel);
@@ -45,7 +46,6 @@ class Solver{
 
   private:
 
-  Config config_;
   //sementic map
   semantic_map_manager::DataRenderer* p_data_renderer_;
 
@@ -68,6 +68,7 @@ class Solver{
 
 
 };
+typedef std::shared_ptr<Solver> SolverPtr;
 }// namespace planning
 #endif
 

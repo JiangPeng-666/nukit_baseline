@@ -12,6 +12,8 @@
 DECLARE_BACKWARD;
 
 namespace planning{
+  // Solver::Solver(int ego_id_) {Solver::ego_id = ego_id_;};
+  Solver::Solver() {};
   std::vector<std::vector<double>> Solver::solver(int ego_id = 0, 
     std::string agent_config_path = "/home/jp/ego_solver/config/highway_v1.0/agent_config.json",
     std::string bp_config_path = "/home/jp/ego_solver/core/eudm_planner/config/eudm_config.pb.txt", 
@@ -76,13 +78,17 @@ namespace planning{
 
   }
 }
-int main(int argc, char **argv){
-    planning::Solver solver;
-    std::vector<std::vector<double>> ego_traj = solver.solver();
-    // for (int i = 0; i < ego_traj.size(); i++) {
-    //   std::cout << ego_traj[i] << endl;
-    // }
-    return 0;
-  }
+// int main(int argc, char **argv){
+//     planning::Solver solver;
+//     std::vector<std::vector<double>> ego_traj = solver.solver();
+
+//     std::cout << "Following are the results of planning.\n";
+//     for (int i = 0; i < ego_traj.size(); i++) {
+//       for (int j = 0; j < ego_traj[i].size(); j++) {
+//         std::cout << ego_traj[i][j] << std::endl;
+//       }
+//     }
+//     return 0;
+//   }
 
 
