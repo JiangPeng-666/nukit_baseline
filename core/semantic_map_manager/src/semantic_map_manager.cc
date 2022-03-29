@@ -253,7 +253,7 @@ ErrorType SemanticMapManager::GetLeadingAndFollowingVehiclesFrenetStateOnLane(
 }
 
 ErrorType SemanticMapManager::GetEgoNearestLaneId(int *ego_lane_id) const {
-  std::cout << "ego lane id:\t" << *ego_lane_id << std::endl;
+  // std::cout << "ego lane id:\t" << *ego_lane_id << std::endl;
   int nearest_lane_id;
   decimal_t distance, arclen;
   if (GetNearestLaneIdUsingState(ego_vehicle_.state().ToXYTheta(),

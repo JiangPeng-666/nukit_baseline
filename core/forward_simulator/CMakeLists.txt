@@ -22,12 +22,14 @@ include_directories(
 
 add_library(forward_simulator INTERFACE)
 
+# set_property(TARGET forward_simulator PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(forward_simulator
     INTERFACE inc
 )
 target_link_libraries(forward_simulator
-    INTERFACE hkust_pl_common
-    INTERFACE hkust_pl_vehicle_model
+    INTERFACE common
+    INTERFACE vehicle_model
 )
 
 

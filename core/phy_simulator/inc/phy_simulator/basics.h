@@ -1,12 +1,3 @@
-/**
- * @file basics.h
- * @author HKUST Aerial Robotics Group
- * @brief
- * @version 0.1
- * @date 2019-03-18
- *
- * @copyright Copyright (c) 2019
- */
 #ifndef _CORE_SEMANTIC_MAP_INC_PHY_SIMULATOR_BASICS_H_
 #define _CORE_SEMANTIC_MAP_INC_PHY_SIMULATOR_BASICS_H_
 

@@ -1,14 +1,3 @@
-/**
- * @file behavior_tree.h
- * @author HKUST Aerial Robotics Group
- * @brief
- * @version 0.1
- * @date 2019-07-07
- *
- * @copyright Copyright (c) 2019
- *
- */
-
 #ifndef _CORE_EUDM_PLANNER_INC_EUDM_PLANNER_BEHAVIOR_TREE_H_
 #define _CORE_EUDM_PLANNER_INC_EUDM_PLANNER_BEHAVIOR_TREE_H_
 

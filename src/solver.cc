@@ -36,6 +36,7 @@ namespace planning{
                     phy_sim.obstacle_set());
   bp_manager_.Init(bp_config_path);
   ssc_planner_.Init(ssc_config_path);
+  std::vector<std::vector<double>> ego_traj; // the results
 
   // behavior planning
   printf("Behavior planning begins.------------------------\n");
@@ -43,7 +44,8 @@ namespace planning{
   task_.user_perferred_behavior = 0;
   task_.user_desired_vel = desired_vel;
   task_.is_under_ctrl = true;
-  bp_manager_.Run(smm_.time_stamp(), map_ptr, task_);
+  std::vector<double> terminate = bp_manager_.Run(smm_.time_stamp(), map_ptr, task_);
+  std::cout << "terminate(x, y): " << terminate[0] << terminate[1] << std::endl;
   common::SemanticBehavior behavior;
   bp_manager_.ConstructBehavior(&behavior);
   smm_.set_ego_behavior(behavior);
@@ -56,39 +58,28 @@ namespace planning{
   ssc_planner_.set_map_interface(&map_adapter_);
   ssc_planner_.RunOnce();
   next_traj_ = std::move(ssc_planner_.trajectory());
-  t = smm_.time_stamp();
   next_traj_->GetState(t, &desired_state);
-  printf(
-      "[SscPlannerServer] desired state (x,y,v,a,theta):(%lf, %lf, %lf, "
-      "%lf, %lf).\n",
-      desired_state.vec_position[0], desired_state.vec_position[1],
-      desired_state.velocity, desired_state.acceleration, desired_state.angle);
+  int cnt = 0;
+  while (std::pow((terminate[0] - desired_state.vec_position[0]), 2) + 
+      std::pow((terminate[1] - desired_state.vec_position[1]), 2) > 0.001) {
+      t = global_init_stamp_ + plan_horizon * (cnt++);
+      next_traj_->GetState(t, &desired_state);
+      // result
+      std::vector<double> res;
+      res.push_back(desired_state.vec_position[0]);//x
+      res.push_back(desired_state.vec_position[1]);//y
+      res.push_back(desired_state.velocity);//v
+      res.push_back(desired_state.acceleration);//a
+      res.push_back(desired_state.angle);//theta
+      
+      ego_traj.push_back(res);
+    }
+  std::cout << "The size of ego_traj: " << ego_traj.size() << std::endl;
+
   printf("Motion planning finished.\n");
 
-  // result
-  std::vector<double> res;
-  res.push_back(desired_state.vec_position[0]);//x
-  res.push_back(desired_state.vec_position[1]);//y
-  res.push_back(desired_state.velocity);//v
-  res.push_back(desired_state.acceleration);//a
-  res.push_back(desired_state.angle);//theta
-  std::vector<std::vector<double>> ego_traj;
-  ego_traj.push_back(res);
   return ego_traj;
 
   }
 }
-// int main(int argc, char **argv){
-//     planning::Solver solver;
-//     std::vector<std::vector<double>> ego_traj = solver.solver();
-
-//     std::cout << "Following are the results of planning.\n";
-//     for (int i = 0; i < ego_traj.size(); i++) {
-//       for (int j = 0; j < ego_traj[i].size(); j++) {
-//         std::cout << ego_traj[i][j] << std::endl;
-//       }
-//     }
-//     return 0;
-//   }
-
 

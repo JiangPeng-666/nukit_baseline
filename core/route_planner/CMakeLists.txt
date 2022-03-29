@@ -17,14 +17,15 @@ include_directories(
     ${semantic_map_manager_INCLUDE_DIRS}
 )
 
-add_library(hkust_pl_rp
+add_library(route_planner
     src/route_planner/route_planner.cc
 )
-target_link_libraries(hkust_pl_rp
-    hkust_pl_common
-    hkust_pl_smm
+set_property(TARGET route_planner PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(route_planner
+    common
+    semantic_map_manager
 )
 
-target_include_directories(hkust_pl_rp
+target_include_directories(route_planner
     PUBLIC inc
 )

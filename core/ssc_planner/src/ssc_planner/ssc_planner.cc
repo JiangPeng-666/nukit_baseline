@@ -1,11 +1,3 @@
-/**
- * @file ssc_planner.cc
- * @author HKUST Aerial Robotics Group
- * @brief implementation for ssc planner
- * @version 0.1
- * @date 2019-02
- * @copyright Copyright (c) 2019
- */
 #include "ssc_planner/ssc_planner.h"
 
 #include <glog/logging.h>

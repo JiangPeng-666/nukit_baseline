@@ -29,24 +29,25 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-add_library(hkust_pl_eudm
+add_library(eudm
     src/eudm_planner/eudm_planner.cc
     src/eudm_planner/map_adapter.cc
     src/eudm_planner/eudm_manager.cc
     src/eudm_planner/dcp_tree.cc
     ${PROTO_SRCS}
 )
-target_link_libraries(hkust_pl_eudm
-    hkust_pl_common
-    hkust_pl_smm
-    hkust_pl_rp
-    hkust_pl_ssc
-    hkust_pl_vehicle_model
+set_property(TARGET eudm PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(eudm
+    common
+    semantic_map_manager
+    route_planner
+    ssc_planner
+    vehicle_model
     motion_predictor
     forward_simulator
 )
 
-target_include_directories(hkust_pl_eudm
+target_include_directories(eudm
     PUBLIC inc
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )

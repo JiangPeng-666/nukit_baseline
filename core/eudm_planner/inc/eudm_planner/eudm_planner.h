@@ -312,9 +312,6 @@ class EudmPlanner : public Planner {
                                    const ForwardSimAgentSet& other_fsagent,
                                    ForwardSimEgoAgent* ego_fsagent) const;
 
-  ErrorType UpdateEgoBehaviorsUsingAction(
-      const DcpAction& action, ForwardSimEgoAgent* ego_fsagent) const;
-
   bool CheckIfLateralActionFinished(const common::State& cur_state,
                                     const int& action_ref_lane_id,
                                     const LateralBehavior& lat_behavior,

@@ -2,6 +2,8 @@
 The modification for nukit based on EPSILON
 
 Tips: 如果想让glog能正常输出，注意修改eudm_manager.cc中的路径设置，个人亲测，似乎如果之前不存在路径所述的文件夹的话，glog不能自己创建文件夹，也就不能创建文件，会一直报错。
+3.29版本
+	待解决：可正常输出，但最后会出现Segmentation fault (core dumped) 报错
 
 3.20版本
 	基于boost，可生成动态链接库py_solver_util.so，用于Python调用C++

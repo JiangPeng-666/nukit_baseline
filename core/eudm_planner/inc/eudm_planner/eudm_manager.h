@@ -78,7 +78,7 @@ class EudmManager {
 
   void Init(const std::string& config_path);
 
-  ErrorType Run(
+  std::vector<double> Run(
       const decimal_t stamp,
       const std::shared_ptr<semantic_map_manager::SemanticMapManager>& map_ptr,
       const planning::eudm::Task& task);
@@ -88,9 +88,7 @@ class EudmManager {
   void ConstructBehavior(common::SemanticBehavior* behavior);
 
   EudmPlanner& planner();
-
-  int original_winner_id() const { return last_snapshot_.original_winner_id; }
-  int processed_winner_id() const { return last_snapshot_.processed_winner_id; }
+  
   std::shared_ptr<semantic_map_manager::SemanticMapManager> map() {
     return map_adapter_.map();
   }
@@ -98,8 +96,6 @@ class EudmManager {
  private:
   decimal_t GetNearestFutureDecisionPoint(const decimal_t& stamp,
                                           const decimal_t& delta);
-
-  bool IsTriggerAppropriate(const LateralBehavior& lat);
 
   ErrorType Prepare(
       const decimal_t stamp,
@@ -116,9 +112,6 @@ class EudmManager {
 
   ErrorType ReselectByContext(const decimal_t stamp, const Snapshot& snapshot,
                               int* new_seq_id);
-
-  void UpdateLaneChangeContextByTask(const decimal_t stamp,
-                                     const planning::eudm::Task& task);
 
   ErrorType GenerateLaneChangeProposal(const decimal_t& stamp,
                                        const planning::eudm::Task& task);

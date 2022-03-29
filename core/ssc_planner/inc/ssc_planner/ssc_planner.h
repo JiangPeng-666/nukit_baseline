@@ -1,11 +1,3 @@
-/**
- * @file ssc_planner.h
- * @author HKUST Aerial Robotics Group
- * @brief planner using spatio-temporal corridor
- * @version 0.1
- * @date 2019-02
- * @copyright Copyright (c) 2019
- */
 #ifndef _UTIL_SSC_PLANNER_INC_SSC_SEARCH_H_
 #define _UTIL_SSC_PLANNER_INC_SSC_SEARCH_H_
 

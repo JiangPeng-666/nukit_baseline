@@ -1,11 +1,3 @@
-/**
- * @file map_adapter.h
- * @author HKUST Aerial Robotics Group
- * @brief map adapter (inherits map interface) for ssc planner
- * @version 0.1
- * @date 2019-02
- * @copyright Copyright (c) 2019
- */
 #ifndef _UTIL_SSC_PLANNER_INC_SSC_PLANNER_MAP_ADAPTER_H__
 #define _UTIL_SSC_PLANNER_INC_SSC_PLANNER_MAP_ADAPTER_H__
 

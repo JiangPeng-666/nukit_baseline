@@ -23,16 +23,18 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS}
 )
 
-add_library(hkust_pl_smm
+add_library(semantic_map_manager
     src/semantic_map_manager.cc
     src/data_renderer.cc
     src/config_loader.cc
     src/traffic_signal_manager.cc
 )
-target_link_libraries(hkust_pl_smm
-    hkust_pl_common
+set_property(TARGET semantic_map_manager PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_link_libraries(semantic_map_manager
+    common
     ${vehicle_model_LIBRARIES}
-    hkust_pl_vehicle_model
+    vehicle_model
     ${common_LIBRARIES}
     # ${motion_predictor_LIBRARIES}
     ${OpenCV_LIBS}
@@ -40,7 +42,7 @@ target_link_libraries(hkust_pl_smm
     forward_simulator
 )
 
-target_include_directories(hkust_pl_smm
+target_include_directories(semantic_map_manager
     PUBLIC inc
     PUBLIC thirdparty
 )

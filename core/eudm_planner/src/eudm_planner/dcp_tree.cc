@@ -1,14 +1,3 @@
-/**
- * @file behavior_tree.cc
- * @author HKUST Aerial Robotics Group
- * @brief
- * @version 0.1
- * @date 2019-07-07
- *
- * @copyright Copyright (c) 2019
- *
- */
-
 #include "eudm_planner/dcp_tree.h"
 
 namespace planning {

@@ -24,7 +24,7 @@ include_directories(
     ${THIRD_PARTY_INCLUDE_DIRS}
 )
 
-add_library(hkust_pl_vehicle_model
+add_library(vehicle_model
     src/vehicle_model/vehicle_model.cc
     src/vehicle_model/ideal_steer_model.cc
     src/vehicle_model/idm_model.cc
@@ -34,10 +34,11 @@ add_library(hkust_pl_vehicle_model
     src/vehicle_model/controllers/idm_velocity_controller.cc
     src/vehicle_model/controllers/ctx_idm_velocity_controller.cc
 )
-target_link_libraries(hkust_pl_vehicle_model
-    hkust_pl_common
+set_property(TARGET vehicle_model PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(vehicle_model
+    common
 )
-target_include_directories(hkust_pl_vehicle_model
+target_include_directories(vehicle_model
     PUBLIC inc
     PUBLIC thirdparty
 )

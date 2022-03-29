@@ -27,24 +27,25 @@ include_directories(
     ${EIGEN3_INCLUDE_DIR}
 )
 
-add_library(hkust_pl_ssc
+add_library(ssc_planner
     src/ssc_planner/ssc_planner.cc
     src/ssc_planner/ssc_map.cc
     src/ssc_planner/map_adapter.cc
     ${PROTO_SRCS}
 )
-target_link_libraries(hkust_pl_ssc 
-    hkust_pl_common
-    hkust_pl_smm
-    hkust_pl_vehicle_model
+set_property(TARGET ssc_planner PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(ssc_planner 
+    common
+    semantic_map_manager
+    vehicle_model
     "${OpenMP_CXX_FLAGS}"
     forward_simulator
     motion_predictor
 )
 
-target_compile_options(hkust_pl_ssc PRIVATE "${OpenMP_CXX_FLAGS}")
+target_compile_options(ssc_planner PRIVATE "${OpenMP_CXX_FLAGS}")
 
-target_include_directories(hkust_pl_ssc
+target_include_directories(ssc_planner
     PUBLIC inc
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )

@@ -1,11 +1,3 @@
-/**
- * @file map_adpater.cc
- * @author HKUST Aerial Robotics Group
- * @brief implementation for map adapter
- * @version 0.1
- * @date 2019-02
- * @copyright Copyright (c) 2019
- */
 #include "ssc_planner/map_adapter.h"
 
 namespace planning {

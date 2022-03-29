@@ -1,12 +1,3 @@
-/**
- * @file basics.h
- * @author HKUST Aerial Robotics Group
- * @brief
- * @version 0.1
- * @date 2019-03-20
- *
- * @copyright Copyright (c) 2019
- */
 #ifndef _CORE_SEMANTIC_MAP_INC_SEMANTIC_MAP_MANAGER_BASICS_H_
 #define _CORE_SEMANTIC_MAP_INC_SEMANTIC_MAP_MANAGER_BASICS_H_
 

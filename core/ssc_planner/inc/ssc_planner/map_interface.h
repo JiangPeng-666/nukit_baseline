@@ -1,11 +1,3 @@
-/**
- * @file map_interface.h
- * @author HKUST Aerial Robotics Group
- * @brief map interface for ssc planner
- * @version 0.1
- * @date 2019-02
- * @copyright Copyright (c) 2019
- */
 #ifndef _UTIL_SSC_PLANNER_INC_SSC_PLANNER_MAP_INTERFACE_H__
 #define _UTIL_SSC_PLANNER_INC_SSC_PLANNER_MAP_INTERFACE_H__
 

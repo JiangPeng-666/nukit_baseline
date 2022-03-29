@@ -58,7 +58,7 @@ ErrorType EudmPlanner::Init(const std::string config) {
   
   LOG(INFO) << "[Eudm]Init.";
   LOG(INFO) << "[Eudm]ActionScript size: "
-            << dcp_tree_ptr_->action_script().size() << std::endl;//这句在打出的log里面没有，但是下一句在命令行中有输出
+            << dcp_tree_ptr_->action_script().size() << std::endl;
   printf("[Eudm]ActionScript size: ");
   std::cout << dcp_tree_ptr_->action_script().size() << std::endl;
 
@@ -289,20 +289,6 @@ ErrorType EudmPlanner::RunEudm() {
 
   // * evaluate
   EvaluateMultiThreadSimResults(&winner_id_, &winner_score_);
-  return kSuccess;
-}
-
-ErrorType EudmPlanner::UpdateEgoBehaviorsUsingAction(
-    const DcpAction& action, ForwardSimEgoAgent* ego_fsagent) const {
-  LateralBehavior lat_behavior;
-  LongitudinalBehavior lon_behavior;
-  if (TranslateDcpActionToLonLatBehavior(action, &lat_behavior,
-                                         &lon_behavior) != kSuccess) {
-    printf("[Eudm]Translate action error\n");
-    return kWrongStatus;
-  }
-  ego_fsagent->lat_behavior = lat_behavior;
-  ego_fsagent->lon_behavior = lon_behavior;
   return kSuccess;
 }
 
@@ -805,7 +791,6 @@ bool EudmPlanner::CheckIfLateralActionFinished(
 }
 
 ErrorType EudmPlanner::RunOnce() {
-  TicToc timer_runonce;
   // * Get current nearest lane id
   if (!map_itf_) return kWrongStatus;
 

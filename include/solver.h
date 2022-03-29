@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <vector>
+#include <cmath>
 
 
 #include "common/basics/tic_toc.h"

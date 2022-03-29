@@ -44,11 +44,12 @@ include_directories(
 
 
 
-add_library(hkust_pl_ooqp_itf
+add_library(ooqp_itf
     src/common/solver/ooqp_interface.cc
     src/common/solver/qp_solver.cc
 )
-target_link_libraries(hkust_pl_ooqp_itf
+set_property(TARGET ooqp_itf PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(ooqp_itf
     ${OOQP_LIBRARIES}
 )
 set(COMMON_SRC
@@ -72,17 +73,18 @@ set(COMMON_SRC
     src/common/circle_arc/circle_arc_branch.cc
 )
 
-add_library(hkust_pl_common
+add_library(common
     ${COMMON_SRC}
 )
-target_link_libraries(hkust_pl_common
+set_property(TARGET common PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(common
     ${THIRD_PARTY_LIBRARIES}
     opencv_core
     opencv_highgui
-    hkust_pl_ooqp_itf
+    ooqp_itf
 )
 
-target_include_directories(hkust_pl_common
+target_include_directories(common
     PUBLIC inc
     PUBLIC thirdparty
 )

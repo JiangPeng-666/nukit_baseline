@@ -21,7 +21,7 @@ target_include_directories(motion_predictor
 )
 
 target_link_libraries(motion_predictor
-    INTERFACE hkust_pl_common
-    INTERFACE hkust_pl_vehicle_model
+    INTERFACE common
+    INTERFACE vehicle_model
     INTERFACE forward_simulator
 )

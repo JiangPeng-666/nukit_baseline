@@ -1,11 +1,3 @@
-/**
- * @file ssc_map.h
- * @author HKUST Aerial Robotics Group
- * @brief maintain the spatial temporal map for the planner
- * @version 0.1
- * @date 2019-02
- * @copyright Copyright (c) 2019
- */
 #ifndef _UTIL_SSC_PLANNER_INC_SSC_MAP_H_
 #define _UTIL_SSC_PLANNER_INC_SSC_MAP_H_
 

@@ -1,12 +1,3 @@
-/**
- * @file ssc_map.cc
- * @author HKUST Aerial Robotics Group
- * @brief implementation for ssc map
- * @version 0.1
- * @date 2019-02
- * @copyright Copyright (c) 2019
- */
-
 #include "ssc_planner/ssc_map.h"
 
 #include <glog/logging.h>

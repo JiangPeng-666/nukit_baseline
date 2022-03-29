@@ -20,9 +20,11 @@ add_library(phy_simulator_lib
     src/phy_simulator/arena_loader.cc
     src/phy_simulator/phy_simulator.cc
 )
+set_property(TARGET phy_simulator_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_link_libraries(phy_simulator_lib
-    hkust_pl_vehicle_model
-    hkust_pl_common
+    vehicle_model
+    common
 )
 target_include_directories(phy_simulator_lib
     PUBLIC inc
