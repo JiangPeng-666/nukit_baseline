@@ -6,11 +6,17 @@ namespace planning {
 
 void EudmManager::Init(const std::string& config_path) {
   printf("Behavior planner initiation begin.\n");
+  char pwd[255];
+  std::string s_tmp;
+  s_tmp = getcwd(pwd, 255);
+  int cur = s_tmp.size() - 1;
+  while(pwd[cur] != '/') {cur--;}
+  s_tmp = s_tmp.substr(0, cur + 1) + "logs/";
   google::InitGoogleLogging("eudm");
-  google::SetLogDestination(google::GLOG_INFO, "/home/jp/ego_solver/logs/info_log/");
-  google::SetLogDestination(google::GLOG_WARNING, "/home/jp/ego_solver/logs/warn_log/");
-  google::SetLogDestination(google::GLOG_ERROR, "/home/jp/ego_solver/logs/error_log/");
-  google::SetLogDestination(google::GLOG_FATAL, "/home/jp/ego_solver/logs/fatal_log/");
+  google::SetLogDestination(google::GLOG_INFO, (s_tmp +"info_log/").c_str());
+  google::SetLogDestination(google::GLOG_WARNING, (s_tmp + "warn_log/").c_str());
+  google::SetLogDestination(google::GLOG_ERROR, (s_tmp + "error_log/").c_str());
+  google::SetLogDestination(google::GLOG_FATAL, (s_tmp + "fatal_log/").c_str());
   bp_.Init(config_path);
   bp_.set_map_interface(&map_adapter_);
   printf("Behavior planner initiation finished.\n");
@@ -423,7 +429,6 @@ std::vector<double> EudmManager::Run(
   // * I : Prepare
   if (Prepare(stamp, map_ptr, task) != kSuccess) {
     std::cout << "Failed preparing!\n";
-    // return kWrongStatus;
     return terminate;
   }
   // * II : RunOnce

@@ -536,16 +536,6 @@ ErrorType EudmPlanner::SimulateScenario(
       return kWrongStatus;
     }
 
-    // TODO(lu.zhang): MOBIL/RSS check here?
-    // * Disable the action that is apparently not valid
-    // if (ego_lat_behavior_this_layer != LateralBehavior::kLaneKeeping) {
-    //   if (!CheckLaneChangingFeasibilityUsingMobil(
-    //           ego_semantic_vehicle_this_layer,
-    //           semantic_vehicle_set_this_layer)) {
-    //     return kWrongStatus;
-    //   }
-    // }
-
     // * simulate this action (layer)
     vec_E<common::Vehicle> ego_traj_multisteps;
     std::unordered_map<int, vec_E<common::Vehicle>> surround_trajs_multisteps;

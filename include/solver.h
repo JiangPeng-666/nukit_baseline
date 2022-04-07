@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <vector>
 #include <cmath>
+#include <string>
 
 
 #include "common/basics/tic_toc.h"
@@ -29,26 +30,40 @@
 
 namespace planning{
 class Solver{
-  public:
+public:
   using SemanticMapManager = semantic_map_manager::SemanticMapManager;
   using FrenetTrajectory = common::FrenetTrajectory;
   using DcpAction = DcpTree::DcpAction;
   using DcpLonAction = DcpTree::DcpLonAction;
   using DcpLatAction = DcpTree::DcpLatAction;
 
-  int ego_id;
-
   Solver();
 
-  std::vector<std::vector<double>> solver(int ego_id, std::string agent_config_path, std::string bp_config_path, 
-    std::string ssc_config_path, std::string vehicle_info_path, std::string map_path, std::string lane_net_path,
-    double desired_vel);
+  std::vector<std::vector<double>> solver(std::vector<std::vector<double>> lanes,
+    std::vector<std::vector<int>> connections, std::vector<double> ego,
+    std::vector<std::vector<double>> agents);
 
+  // lanes: (num * 2)
+  // connections (num * 2)
+  // ego: ego_pose = ego[:3] # (1*3) x, y, heading
+  //      ego_size = ego[3:] # (1*2) width, length
+  // agents: agent_pose = (agents[:,0:3]) # (num * 3) x, y, heading
+  //         agents_velocity = (agents[:,3 : 5]) # (num * 2) x, y
+  //         agents_size = (agents[:,6:]) # (num * 2)
 
-  private:
+private:
+
+  // path
+  std::string agent_config_path;
+  std::string vehicle_info_path;
+  std::string map_path;
+  std::string lane_net_path;
+  std::string ssc_config_path;
+  std::string bp_config_path;
 
   //sementic map
   semantic_map_manager::DataRenderer* p_data_renderer_;
+  int ego_id = 0;
 
   // ssc
   decimal_t work_rate_ = 20.0;
@@ -66,7 +81,6 @@ class Solver{
   SemanticMapManager smm_;
   planning::eudm::Task task_;
   bool use_sim_state_ = true;
-
 
 };
 typedef std::shared_ptr<Solver> SolverPtr;

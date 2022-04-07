@@ -4,12 +4,16 @@ namespace phy_simulator {
 
 PhySimulation::PhySimulation() {
   p_arena_loader_ = new ArenaLoader();
-  if (!GetDataFromArenaLoader()) assert(false);
+  // if (!GetDataFromArenaLoader()) assert(false);
 }
 
 PhySimulation::PhySimulation(const std::string &vehicle_set_path,
                              const std::string &map_path,
-                             const std::string &lane_net_path) {
+                             const std::string &lane_net_path,
+                             const std::vector<std::vector<double>> &lanes, 
+                             const std::vector<std::vector<int>> &connections,
+                             const std::vector<double> &ego, 
+                             const std::vector<std::vector<double>> &agents) {
   std::cout << "[PhySimulation] Constructing..." << std::endl;
   p_arena_loader_ = new ArenaLoader();
 
@@ -17,15 +21,18 @@ PhySimulation::PhySimulation(const std::string &vehicle_set_path,
   p_arena_loader_->set_map_path(map_path);
   p_arena_loader_->set_lane_net_path(lane_net_path);
 
-  GetDataFromArenaLoader();
+  GetDataFromArenaLoader(lanes, connections, ego, agents);
   SetupVehicleModelForVehicleSet();
 }
 
-bool PhySimulation::GetDataFromArenaLoader() {
+bool PhySimulation::GetDataFromArenaLoader(const std::vector<std::vector<double>> &lanes, 
+                const std::vector<std::vector<int>> &connections,
+                const std::vector<double> &ego, 
+                const std::vector<std::vector<double>> &agents) {
   std::cout << "[PhySimulation] Parsing simulation info..." << std::endl;
-  p_arena_loader_->ParseVehicleSet(&vehicle_set_);
+  p_arena_loader_->ParseVehicleSet(&vehicle_set_, ego, agents);
   p_arena_loader_->ParseMapInfo(&obstacle_set_);
-  p_arena_loader_->ParseLaneNetInfo(&lane_net_);
+  p_arena_loader_->ParseLaneNetInfo(&lane_net_, lanes, connections);
   return true;
 }
 

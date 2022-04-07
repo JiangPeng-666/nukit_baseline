@@ -6,34 +6,86 @@
 #include <boost/python/manage_new_object.hpp>
 #include <boost/python/return_value_policy.hpp>
 
-boost::python::object NewAInstance() {
-    boost::python::numpy::initialize();
+namespace py = boost::python;
+namespace np = boost::python::numpy;
+
+using std::vector;
+using std::cout;
+using std::endl;
+
+py::object NewAInstance() {
+    
     auto result = std::make_shared<planning::Solver>();
 
-    return boost::python::object(result);
+    return py::object(result);
 }
 
-boost::python::object BuildAOutput(const boost::python::object &in_obj) {
-    planning::SolverPtr instance_ptr = boost::python::extract<planning::SolverPtr>(in_obj);
+py::object BuildAOutput(const py::object &in_obj, py::object &data) {
 
-    auto result = instance_ptr->solver(0, 
-    "/home/jp/ego_solver/config/highway_v1.0/agent_config.json",
-    "/home/jp/ego_solver/core/eudm_planner/config/eudm_config.pb.txt",
-    "/home/jp/ego_solver/core/ssc_planner/config/ssc_config.pb.txt",
-    "/home/jp/ego_solver/config/highway_v1.0/vehicle_set.json",
-    "/home/jp/ego_solver/config/highway_v1.0/obstacles_norm.json",
-    "/home/jp/ego_solver/config/highway_v1.0/lane_net_norm.json", 20);
+    planning::SolverPtr instance_ptr = py::extract<planning::SolverPtr>(in_obj);
+    vector<vector<double>> lanes, agents;
+    vector<vector<int>> connections;
+    vector<double> ego;
 
-    boost::python::list ret_lst;
+    // data preprocessing
+    py::tuple dataList = py::extract<py::tuple>(data);
+    np::ndarray lanes_tmp = np::from_object((dataList.slice(0, 1))[0]);
+    np::ndarray connections_tmp = np::from_object((dataList.slice(1, 2))[0]);
+    np::ndarray ego_tmp = np::from_object(dataList.slice(2, 3));
+    np::ndarray agents_tmp = np::from_object((dataList.slice(3, 4))[0]);
+        // row: shape(0), col: shape(1)
 
-    for (int i = 0; i < result.size(); i++){
-        boost::python::list ret_lst_tmp;
-        for (int j = 0; j < result[i].size(); j++) {
+        // lanes(vector<vector<double>>, nums * 2)
+    for (int i = 0; i < lanes_tmp.shape(0); i++) {
+        vector<double> lanes_2;
+        np::ndarray lanes_2_tmp = np::from_object(lanes_tmp[i]);
+        double* lanes_tmp_ptr = reinterpret_cast<double*>(lanes_2_tmp.get_data());
+        for (int j = 0; j < lanes_tmp.shape(1); j++) {
+            lanes_2.push_back(*(lanes_tmp_ptr + j));
+        }
+        lanes.push_back(lanes_2);
+    }
+
+        // connections(vector<vector<int>>, nums * 2)
+    for (int i = 0; i < connections_tmp.shape(0); i++) {
+        vector<int> connections_2;
+        np::ndarray connections_2_tmp = np::from_object(connections_tmp[i]);
+        for (int j = 0; j < connections_tmp.shape(1); j++) {
+            int* connections_tmp_ptr = reinterpret_cast<int*>(np::from_object(connections_2_tmp[j]).get_data());
+            connections_2.push_back(*(connections_tmp_ptr));
+        }
+        connections.push_back(connections_2);
+    }
+
+        // ego(vector<double>, nums * 5)
+    double* ego_tmp_ptr = reinterpret_cast<double*>(ego_tmp.get_data());
+    for (int i = 0; i < static_cast<int>(ego_tmp.shape(1)); i++){
+        ego.push_back(*(ego_tmp_ptr + i));
+    }
+
+        // agents(vector<vector<double>>, nums * 8)
+    for (int i = 0; i < agents_tmp.shape(0); i++) {
+        vector<double> agents_2;
+        np::ndarray agents_2_tmp = np::from_object(agents_tmp[i]);
+        double* agents_tmp_ptr = reinterpret_cast<double*>(agents_2_tmp.get_data());
+        for (int j = 0; j < agents_tmp.shape(1); j++) {
+            agents_2.push_back(*(agents_tmp_ptr + j));
+        }
+        agents.push_back(agents_2);
+    }
+
+    // data -> solver 
+    auto result = instance_ptr->solver(lanes, connections, ego, agents);
+
+    // result
+    py::list ret_lst;
+    for (int i = 0; i < static_cast<int>(result.size()); i++){
+        py::list ret_lst_tmp;
+        for (int j = 0; j < static_cast<int>(result[i].size()); j++) {
             ret_lst_tmp.append(result[i][j]);
         }
         ret_lst.append(ret_lst_tmp);
     }
-
 
     return ret_lst;
 }
@@ -41,9 +93,12 @@ boost::python::object BuildAOutput(const boost::python::object &in_obj) {
 // 定义python绑定C++函数名称
 BOOST_PYTHON_MODULE(libpy_solver_util) {
 
-boost::python::class_<planning::SolverPtr>("NewAClassIdentity", boost::python::init<>());
+Py_Initialize();
+np::initialize();
 
-boost::python::def("new_a_instance", &NewAInstance);
+py::class_<planning::SolverPtr>("NewAClassIdentity", py::init<>());
 
-boost::python::def("build_a_output", &BuildAOutput);
+py::def("new_a_instance", &NewAInstance);
+
+py::def("build_a_output", &BuildAOutput);
 }
