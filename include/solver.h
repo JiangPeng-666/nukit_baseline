@@ -39,17 +39,22 @@ public:
 
   Solver();
 
-  std::vector<std::vector<double>> solver(std::vector<std::vector<double>> lanes,
-    std::vector<std::vector<int>> connections, std::vector<double> ego,
-    std::vector<std::vector<double>> agents);
+  std::vector<std::vector<double>> solver(std::vector<int> &lanes_id, std::vector<double> &lanes_length,
+  std::vector<std::vector<std::vector<double>>> &points, std::vector<std::vector<int>> &pre_connections, 
+  std::vector<std::vector<int>> &nxt_connnections, std::vector<std::vector<int>> &left_connnection, 
+  std::vector<std::vector<int>> &right_connnection, std::vector<double> &ego, 
+  std::vector<std::vector<double>> &agents, std::vector<std::vector<double>> &obstacles);
 
-  // lanes: (num * 2)
-  // connections (num * 2)
+  // lanes_id: (num_lanes * 1)
+  // lanes_length: (num_lanes * 1)
+  // points: (num_lanes * num_points * 2)
+  // connections (num_lanes * 2)
   // ego: ego_pose = ego[:3] # (1*3) x, y, heading
   //      ego_size = ego[3:] # (1*2) width, length
   // agents: agent_pose = (agents[:,0:3]) # (num * 3) x, y, heading
   //         agents_velocity = (agents[:,3 : 5]) # (num * 2) x, y
   //         agents_size = (agents[:,6:]) # (num * 2)
+  // obstacles: (nums_obstacles * 4)
 
 private:
 

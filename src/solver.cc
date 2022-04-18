@@ -19,16 +19,25 @@ namespace planning{
 
   Solver::Solver() {};
 
-  vector<vector<double>> Solver::solver(vector<vector<double>> lanes,
-    vector<vector<int>> connections, vector<double> ego, vector<vector<double>> agents) {
+  vector<vector<double>> Solver::solver(vector<int> &lanes_id, vector<double> &lanes_length,
+  vector<vector<vector<double>>> &points, vector<vector<int>> &pre_connections, 
+  vector<vector<int>> &nxt_connnections, vector<vector<int>> &left_connnection, 
+  vector<vector<int>> &right_connnection, vector<double> &ego, 
+  vector<vector<double>> &agents, vector<vector<double>> &obstacles) {
 
-  // path to config
-  char pwd[255];
-  std::string s_tmp;
-  s_tmp = getcwd(pwd, 255);
-  int cur = s_tmp.size() - 1;
-  while(pwd[cur] != '/') {cur--;}
-  s_tmp = s_tmp.substr(0, cur + 1);
+   // path to config
+   // 1. for the convenience of working in VS Code, relative path is deprecated here
+  // char pwd[255];
+  // std::string s_tmp;
+  // s_tmp = getcwd(pwd, 255);
+  // cout << "Current path is: "<< s_tmp << endl;
+  // int cur = s_tmp.size() - 1;
+  // while(pwd[cur] != '/') {cur--;}
+  // s_tmp = s_tmp.substr(0, cur + 1);
+  // 2. and we take the absulte path here
+  string s_tmp;
+  s_tmp = "/home/lain/jiangpeng/nukit_baseline/";
+
   string pwd_cfg = s_tmp + "config/";
   string pwd_core = s_tmp + "core/";
   agent_config_path = pwd_cfg + "highway_v1.0/agent_config.json";
@@ -41,7 +50,8 @@ namespace planning{
 
   // Initialization
   phy_simulator::PhySimulation phy_sim(vehicle_info_path, map_path, lane_net_path, 
-        lanes, connections, ego, agents);
+        lanes_id, lanes_length, points, pre_connections, nxt_connnections, left_connnection,
+        right_connnection, ego, agents, obstacles);
   semantic_map_manager::SemanticMapManager smm_(ego_id, agent_config_path);
   p_data_renderer_ = new semantic_map_manager::DataRenderer(&smm_);
   p_data_renderer_->Render(smm_.time_stamp(), phy_sim.lane_net(), phy_sim.vehicle_set(), 

@@ -1,4 +1,6 @@
 #include "phy_simulator/phy_simulator.h"
+using std::vector;
+using std::string;
 
 namespace phy_simulator {
 
@@ -7,13 +9,19 @@ PhySimulation::PhySimulation() {
   // if (!GetDataFromArenaLoader()) assert(false);
 }
 
-PhySimulation::PhySimulation(const std::string &vehicle_set_path,
-                             const std::string &map_path,
-                             const std::string &lane_net_path,
-                             const std::vector<std::vector<double>> &lanes, 
-                             const std::vector<std::vector<int>> &connections,
-                             const std::vector<double> &ego, 
-                             const std::vector<std::vector<double>> &agents) {
+PhySimulation::PhySimulation(const string &vehicle_set_path,
+                             const string &map_path,
+                             const string &lane_net_path,
+                             const vector<int> &lanes_id,
+                             const vector<double> &lanes_length,
+                             const vector<vector<vector<double>>> &points, 
+                             const vector<vector<int>> &pre_connections,
+                             const vector<vector<int>> &nxt_connections,
+                             const vector<vector<int>> &left_connection,
+                             const vector<vector<int>> &right_connection,
+                             const vector<double> &ego, 
+                             const vector<vector<double>> &agents,
+                             const vector<vector<double>> &obstacles) {
   std::cout << "[PhySimulation] Constructing..." << std::endl;
   p_arena_loader_ = new ArenaLoader();
 
@@ -21,18 +29,26 @@ PhySimulation::PhySimulation(const std::string &vehicle_set_path,
   p_arena_loader_->set_map_path(map_path);
   p_arena_loader_->set_lane_net_path(lane_net_path);
 
-  GetDataFromArenaLoader(lanes, connections, ego, agents);
+  GetDataFromArenaLoader(lanes_id, lanes_length, points, pre_connections,
+    nxt_connections, left_connection, right_connection, ego, agents, obstacles);
   SetupVehicleModelForVehicleSet();
 }
 
-bool PhySimulation::GetDataFromArenaLoader(const std::vector<std::vector<double>> &lanes, 
-                const std::vector<std::vector<int>> &connections,
-                const std::vector<double> &ego, 
-                const std::vector<std::vector<double>> &agents) {
+bool PhySimulation::GetDataFromArenaLoader(const vector<int> &lanes_id,
+                             const vector<double> &lanes_length,
+                             const vector<vector<vector<double>>> &points, 
+                             const vector<vector<int>> &pre_connections,
+                             const vector<vector<int>> &nxt_connections,
+                             const vector<vector<int>> &left_connection,
+                             const vector<vector<int>> &right_connection,
+                             const vector<double> &ego, 
+                             const vector<vector<double>> &agents,
+                             const vector<vector<double>> &obstacles) {
   std::cout << "[PhySimulation] Parsing simulation info..." << std::endl;
   p_arena_loader_->ParseVehicleSet(&vehicle_set_, ego, agents);
-  p_arena_loader_->ParseMapInfo(&obstacle_set_);
-  p_arena_loader_->ParseLaneNetInfo(&lane_net_, lanes, connections);
+  p_arena_loader_->ParseMapInfo(&obstacle_set_, obstacles);
+  p_arena_loader_->ParseLaneNetInfo(&lane_net_, lanes_id, lanes_length, points, 
+    pre_connections, nxt_connections, left_connection, right_connection);
   return true;
 }
 

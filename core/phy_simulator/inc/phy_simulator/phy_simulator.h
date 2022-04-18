@@ -22,12 +22,15 @@ namespace phy_simulator {
 class PhySimulation {
  public:
   PhySimulation();
-  PhySimulation(const std::string &vehicle_set_path,
-                const std::string &map_path, const std::string &lane_net_path,
-                const std::vector<std::vector<double>> &lanes, 
-                const std::vector<std::vector<int>> &connections,
-                const std::vector<double> &ego, 
-                const std::vector<std::vector<double>> &agents);
+  PhySimulation(const std::string &vehicle_set_path, const std::string &map_path, const std::string &lane_net_path, 
+                             const std::vector<int> &lanes_id, const std::vector<double> &lanes_length, 
+                             const std::vector<std::vector<std::vector<double>>> &points, 
+                             const std::vector<std::vector<int>> &pre_connections,
+                             const std::vector<std::vector<int>> &nxt_connections,
+                             const std::vector<std::vector<int>> &left_connection,
+                             const std::vector<std::vector<int>> &right_connection,
+                             const std::vector<double> &ego, const std::vector<std::vector<double>> &agents,
+                             const std::vector<std::vector<double>> &obstacles);
   ~PhySimulation() {}
 
   common::LaneNet lane_net() const { return lane_net_; }
@@ -42,10 +45,16 @@ class PhySimulation {
       const common::VehicleControlSignalSet &signal_set, const decimal_t &dt);
 
  private:
-  bool GetDataFromArenaLoader(const std::vector<std::vector<double>> &lanes, 
-                const std::vector<std::vector<int>> &connections,
-                const std::vector<double> &ego, 
-                const std::vector<std::vector<double>> &agents);
+  bool GetDataFromArenaLoader(const std::vector<int> &lanes_id,
+                             const std::vector<double> &lanes_length,
+                             const std::vector<std::vector<std::vector<double>>> &points, 
+                             const std::vector<std::vector<int>> &pre_connections,
+                             const std::vector<std::vector<int>> &nxt_connections,
+                             const std::vector<std::vector<int>> &left_connection,
+                             const std::vector<std::vector<int>> &right_connection,
+                             const std::vector<double> &ego, 
+                             const std::vector<std::vector<double>> &agents,
+                             const std::vector<std::vector<double>> &obstacles);
 
   bool SetupVehicleModelForVehicleSet();
 

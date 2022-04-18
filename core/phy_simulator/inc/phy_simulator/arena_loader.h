@@ -65,7 +65,8 @@ class ArenaLoader {
    * @return true Parsing success
    * @return false Parsing failed
    */
-  ErrorType ParseMapInfo(common::ObstacleSet *p_obstacle_set);
+  ErrorType ParseMapInfo(common::ObstacleSet *p_obstacle_set, 
+    const std::vector<std::vector<double>> &obstacles);
 
   /**
    * @brief Parse map info from json
@@ -74,9 +75,14 @@ class ArenaLoader {
    * @return true Parsing success
    * @return false Parsing failed
    */
-  ErrorType ParseLaneNetInfo(common::LaneNet *p_lane_net, 
-                const std::vector<std::vector<double>> &lanes, 
-                const std::vector<std::vector<int>> &connections);
+  ErrorType ParseLaneNetInfo(common::LaneNet *p_lane_net,
+                const std::vector<int> &lanes_id, 
+                const std::vector<double> &lanes_length, 
+                const std::vector<std::vector<std::vector<double>>> &points,
+                const std::vector<std::vector<int>> &pre_connections,
+                const std::vector<std::vector<int>> &nxt_connections,
+                const std::vector<std::vector<int>> &left_connection,
+                const std::vector<std::vector<int>> &right_connection);
 
  private:
   std::string vehicle_set_path_;

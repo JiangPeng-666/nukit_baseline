@@ -1,5 +1,8 @@
 #include "phy_simulator/arena_loader.h"
 
+using std::vector;
+using std::string;
+
 namespace phy_simulator {
 
 using Json = nlohmann::json;
@@ -14,8 +17,8 @@ ArenaLoader::ArenaLoader(const std::string &vehicle_set_path,
       lane_net_path_(lane_net_path) {}
 
 bool ArenaLoader::ParseVehicleSet(common::VehicleSet *p_vehicle_set, 
-                const std::vector<double> &ego, 
-                const std::vector<std::vector<double>> &agents) {
+                const vector<double> &ego, 
+                const vector<vector<double>> &agents) {
   printf("\n[ArenaLoader] Loading vehicle set\n");
 
   std::fstream fs(vehicle_set_path_);
@@ -82,43 +85,48 @@ bool ArenaLoader::ParseVehicleSet(common::VehicleSet *p_vehicle_set,
   return true;
 }
 
-ErrorType ArenaLoader::ParseMapInfo(common::ObstacleSet *p_obstacle_set) {
+ErrorType ArenaLoader::ParseMapInfo(common::ObstacleSet *p_obstacle_set,
+      const vector<vector<double>> &obstacles) {
   printf("\n[ArenaLoader] Loading map info\n");
 
-  // std::fstream fs(map_path_);
-  // Json root;
-  // fs >> root;
+  std::fstream fs(map_path_);
+  Json root;
+  fs >> root;
 
-  // Json obstacles_json = root["features"];
-  // for (int i = 0; i < static_cast<int>(obstacles_json.size()); ++i) {
-  //   Json obs = obstacles_json[i];
-  //   // printf("Obstacle id %d.\n", obs["properties"]["id"].get<int>());
-  //   auto is_valid = obs["properties"]["is_valid"].get<int>();
-  //   if (!static_cast<bool>(is_valid)) {
-  //     continue;
-  //   }
+  Json obstacles_json = root["features"];
+  for (int i = 0; i < static_cast<int>(obstacles.size()); ++i) {
+    int j;
+    if (i >= obstacles_json.size()) j = obstacles_json.size() - 1;
+    else j = i;
+    Json obs = obstacles_json[j];
+    // printf("Obstacle id %d.\n", obs["properties"]["id"].get<int>());
 
-  //   common::PolygonObstacle poly;
-  //   poly.id = obs["properties"]["id"].get<int>();
-  //   poly.type = obs["properties"]["is_spec"].get<int>();
-  //   Json coord = obs["geometry"]["coordinates"][0][0];
-  //   int num_pts = static_cast<int>(coord.size());
-  //   for (int k = 0; k < num_pts; ++k) {
-  //     common::Point point(coord[k][0].get<double>(), coord[k][1].get<double>());
-  //     poly.polygon.points.push_back(point);
-  //   }
-  //   p_obstacle_set->obs_polygon.insert(
-  //       std::pair<int, common::PolygonObstacle>(poly.id, poly));
-  // }
-  // // p_obstacle_set->print();
+    common::PolygonObstacle poly;
+    poly.id = i;
+    if (i < obstacles.size() - 1) poly.type = 0;
+    else poly.type = 1;
+    int num_pts = static_cast<int>(obstacles[i].size());
+    for (int k = 0; k < num_pts; ++k) {
+      common::Point point(obstacles[i][0], obstacles[i][1]);
+      poly.polygon.points.push_back(point);
+    }
+    p_obstacle_set->obs_polygon.insert(
+        std::pair<int, common::PolygonObstacle>(poly.id, poly));
+  }
+  // p_obstacle_set->print();
 
-  // fs.close();
+  fs.close();
   return kSuccess;
 }
 
 ErrorType ArenaLoader::ParseLaneNetInfo(common::LaneNet *p_lane_net,
-                const std::vector<std::vector<double>> &lanes, 
-                const std::vector<std::vector<int>> &connections) {
+                const vector<int> &lanes_id, 
+                const vector<double> &lanes_length, 
+                const vector<vector<vector<double>>> &points,
+                const vector<vector<int>> &pre_connections,
+                const vector<vector<int>> &nxt_connections,
+                const vector<vector<int>> &left_connection,
+                const vector<vector<int>> &right_connection) {
   printf("\n[ArenaLoader] Loading lane net info\n");
 
   std::fstream fs(lane_net_path_);
@@ -127,7 +135,7 @@ ErrorType ArenaLoader::ParseLaneNetInfo(common::LaneNet *p_lane_net,
 
   Json lane_net_json = root["features"];
 
-  for (int i = 0; i < static_cast<int>(lanes.size()) / 2; ++i) {
+  for (int i = 0; i < static_cast<int>(lanes_id.size()); ++i) {
     common::LaneRaw lane_raw;
     int j;
     if (i >= lane_net_json.size()) j = lane_net_json.size() - 1;
@@ -136,48 +144,39 @@ ErrorType ArenaLoader::ParseLaneNetInfo(common::LaneNet *p_lane_net,
     Json lane_meta = lane_json["properties"];
 
     lane_raw.id = i;
-    lane_raw.length = abs(lanes[i][1] - lanes[i][0]);
+    lane_raw.length = lanes_length[i];
     lane_raw.dir = 1;
 
     // printf("-Lane id %d.\n", lane_raw.id);
-    if (i < lanes.size() - 1) {
-      std::string str_child_id = std::to_string(i + 1);
-    {
-      std::vector<std::string> str_vec;
-      common::SplitString(str_child_id, ",", &str_vec);
-      for (const auto &str : str_vec) {
-        auto lane_id = std::stoi(str);
+    if (i < lanes_id.size() - 1) {
+      for (const auto lane_id : nxt_connections[i]) {
         if (lane_id != 0) lane_raw.child_id.push_back(lane_id);
       }
     }
-    }
 
     if (i > 0) {
-      std::string str_father_id = std::to_string(i - 1);
-    {
-      std::vector<std::string> str_vec;
-      common::SplitString(str_father_id, ",", &str_vec);
-      for (const auto &str : str_vec) {
-        auto lane_id = std::stoi(str);
+      for (const auto &lane_id : pre_connections[i]) {
         if (lane_id != 0) lane_raw.father_id.push_back(lane_id);
       }
     }
+
+    int lchg_vld = 0;
+    int rchg_vld = 0;
+    for (const auto &lane_id : left_connection[i]) {
+      lane_raw.l_lane_id = lane_id;
+      lchg_vld = 1;
+    }
+    for (const auto &lane_id : right_connection[i]) {
+      lane_raw.r_lane_id = lane_id;
+      rchg_vld = 1;
     }
 
-    lane_raw.l_lane_id = 0;
-    lane_raw.r_lane_id = 0;
-    // lane_raw.l_lane_id = lane_meta["left_id"].get<int>();
-    // lane_raw.r_lane_id = lane_meta["right_id"].get<int>();
-
-    int lchg_vld = lane_meta["lchg_vld"].get<int>();
-    int rchg_vld = lane_meta["rchg_vld"].get<int>();
     lane_raw.l_change_avbl = static_cast<bool>(lchg_vld);
     lane_raw.r_change_avbl = static_cast<bool>(rchg_vld);
-    lane_raw.behavior = lane_meta["behavior"].get<std::string>();
+    lane_raw.behavior = "s";
 
-    Json lane_coordinates = lane_json["geometry"]["coordinates"][0];
-    for (int k = 0; k < 2; k++) {
-      Vec2f pt(lanes[2 * i + k][0], lanes[2 * i + k][1]);
+    for (int k = 0; k < points[i].size(); ++k) {
+      Vec2f pt(points[i][k][0], points[i][k][1]);
       lane_raw.lane_points.emplace_back(pt);
     }
     lane_raw.start_point = *(lane_raw.lane_points.begin());

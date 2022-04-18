@@ -9,9 +9,12 @@ void EudmManager::Init(const std::string& config_path) {
   char pwd[255];
   std::string s_tmp;
   s_tmp = getcwd(pwd, 255);
-  int cur = s_tmp.size() - 1;
-  while(pwd[cur] != '/') {cur--;}
-  s_tmp = s_tmp.substr(0, cur + 1) + "logs/";
+  // run by VS Code, relative path of terminal and "Run Python File" are different
+  // int cur = s_tmp.size() - 1;
+  // while(pwd[cur] != '/') {cur--;}
+  // s_tmp = s_tmp.substr(0, cur + 1) + "logs/";
+  s_tmp += "/logs"; // modified for VS Code
+  
   google::InitGoogleLogging("eudm");
   google::SetLogDestination(google::GLOG_INFO, (s_tmp +"info_log/").c_str());
   google::SetLogDestination(google::GLOG_WARNING, (s_tmp + "warn_log/").c_str());
