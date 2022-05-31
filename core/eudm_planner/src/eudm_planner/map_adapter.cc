@@ -55,7 +55,6 @@ ErrorType EudmPlannerMapAdapter::GetNearestLaneIdUsingState(
     printf("[GetNearestLaneIdUsingState]Interface not valid.\n");
     return kWrongStatus;
   }
-  std::set<std::tuple<decimal_t, decimal_t, int>> dist_set;
   if (map_->GetNearestLaneIdUsingState(state, navi_path, id, distance,
                                        arc_len) != kSuccess) {
     printf("[GetNearestLaneIdUsingState]Cannot get nearest lane.\n");
@@ -215,6 +214,7 @@ ErrorType EudmPlannerMapAdapter::GetRefLaneForStateByBehavior(
   if (map_->GetRefLaneForStateByBehavior(state, navi_path, behavior,
                                          max_forward_len, max_back_len,
                                          is_high_quality, lane) != kSuccess) {
+    printf("Failed getting ref lane by behavior: %d\n", int(behavior));
     return kWrongStatus;
   }
   if (!lane->IsValid()) {
@@ -271,6 +271,7 @@ ErrorType EudmPlannerMapAdapter::GetKeySemanticVehicles(
     common::SemanticVehicleSet *key_vehicle_set) {
   if (!is_valid_) return kWrongStatus;
   *key_vehicle_set = map_->semantic_key_vehicles();
+  printf("[map_adapter]:map_->semantic_key_vehicles()_size:%d\n", key_vehicle_set->semantic_vehicles.size());
   return kSuccess;
 }
 
@@ -289,6 +290,12 @@ ErrorType EudmPlannerMapAdapter::CheckCollisionUsingState(
       kSuccess) {
     return kWrongStatus;
   }
+  return kSuccess;
+}
+ErrorType EudmPlannerMapAdapter::CheckIfCollision(
+    const common::VehicleParam &vehicle_param, const common::State &state, bool *res) {
+  if (!is_valid_) return kWrongStatus;
+  map_->CheckCollisionUsingStateAndVehicleParam(vehicle_param, state, res);
   return kSuccess;
 }
 

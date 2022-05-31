@@ -11,7 +11,7 @@
           "height": 1000,
           "resolution": 0.2
         },
-        "surrounding_search_radius": 150.0,
+        "surrounding_search_radius": 300.0,
         "enable_openloop_prediction": true
       },
       {

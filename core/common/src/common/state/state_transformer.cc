@@ -106,29 +106,34 @@ ErrorType StateTransformer::GetStateVectorFromFrenetStates(
 ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
                                                     FrenetState* fs) const {
   if (!lane_.IsValid()) {
+    printf("lane is invalid!\n");
     return kIllegalInput;
   }
 
   decimal_t arc_length;
   if (lane_.GetArcLengthByVecPosition(s.vec_position, &arc_length) !=
       kSuccess) {
+    printf("Failed getting arc length by vec position!\n");
     return kWrongStatus;
   }
 
   decimal_t curvature, curvature_derivative;
   if (lane_.GetCurvatureByArcLength(arc_length, &curvature,
                                     &curvature_derivative) != kSuccess) {
+    printf("Failed getting curvature by arc length!\n");
     return kWrongStatus;
   }
 
   Vecf<2> lane_position;
   if (lane_.GetPositionByArcLength(arc_length, &lane_position) != kSuccess) {
+    printf("Failed getting position by arc length!\n");
     return kWrongStatus;
   }
 
   Vecf<2> lane_tangent_vec;
   if (lane_.GetTangentVectorByArcLength(arc_length, &lane_tangent_vec) !=
       kSuccess) {
+    printf("Failed getting tangent vector by arc length!\n");
     return kWrongStatus;
   }
   decimal_t lane_orientation = vec2d_to_angle(lane_tangent_vec);
@@ -139,6 +144,9 @@ ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
       step_tolerance) {
     // ~ projection deviates
     // ~ @(denny.ding) check whether this condition is good?
+    // printf("The projection deviates are too large.\n");
+    // printf("lane position is: \n");
+    // std::cout << std::setprecision(12) << lane_position << std::endl;
     return kWrongStatus;
   }
 
@@ -151,7 +159,7 @@ ErrorType StateTransformer::GetFrenetStateFromState(const State& s,
   decimal_t d = (s.vec_position - lane_position).dot(lane_normal_vec);
   decimal_t one_minus_curd = 1 - curvature * d;
   if (one_minus_curd < kEPS) {
-    // printf("[StateFromFrenetState]d not valid for transform.\n");
+    printf("[StateFromFrenetState]d not valid for transform.\n");
     return kWrongStatus;
   }
   decimal_t delta_theta = normalize_angle(s.angle - lane_orientation);

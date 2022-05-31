@@ -166,10 +166,11 @@ ErrorType EudmPlanner::ClassifyActionSeq(
         *is_cancel_operation = true;
       }
     }
+    // action.t = 1.0
     duration += action.t;
   }
   if (!find_lat_active_behavior) {
-    *operation_at_seconds = duration + cfg_.sim().duration().layer();
+    *operation_at_seconds = duration + cfg_.sim().duration().layer(); // 1.0
     *lat_behavior = common::LateralBehavior::kLaneKeeping;
     *is_cancel_operation = false;
   }
@@ -260,8 +261,18 @@ ErrorType EudmPlanner::RunEudm() {
   GetSurroundingForwardSimAgents(surrounding_semantic_vehicles,
                                  &surrounding_fsagents);
 
+  LOG(INFO) << "[Eudm][process]surrounding_fsagents_size: " <<
+            surrounding_fsagents.forward_sim_agents.size();
+
   auto action_script = dcp_tree_ptr_->action_script();
   int n_sequence = action_script.size();
+
+  // // modified to single threading for debugging
+  // PrepareMultiThreadContainers(n_sequence);
+  // for (int i = 0; i < n_sequence; ++i) {
+  //   EudmPlanner::SimulateActionSequence(ego_vehicle_, surrounding_fsagents, action_script[i], i);
+  // }
+  // LOG(INFO) << "[Eudm][Process]Single-thread forward simulation finished!";
 
   // * prepare for multi-threading
   std::vector<std::thread> thread_set(n_sequence);
@@ -277,6 +288,8 @@ ErrorType EudmPlanner::RunEudm() {
     thread_set[i].join();
   }
 
+  LOG(INFO) << "[Eudm][Process]Multi-thread forward simulation finished!";
+
   // * finish multi-threading, summary simulation results
   bool sim_success = false;
   int num_valid_behaviors = 0;
@@ -287,8 +300,49 @@ ErrorType EudmPlanner::RunEudm() {
     }
   }
 
+  // Display the results of the simulation
+  for (int i = 0; i < n_sequence; ++i) {
+    std::ostringstream line_info;
+    line_info << "[Eudm][Result]" << i << " [";
+    for (const auto& a : action_script[i]) {
+      line_info << DcpTree::RetLonActionName(a.lon);
+    }
+    line_info << "|";
+    for (const auto& a : action_script[i]) {
+      line_info << DcpTree::RetLatActionName(a.lat);
+    }
+    line_info << "]";
+    line_info << "[s:" << sim_res_[i] << "|r:" << risky_res_[i]
+              << "|c:" << std::fixed << std::setprecision(3) << final_cost_[i]
+              << "]";
+    line_info << " " << sim_info_[i] << "\n";
+    if (sim_res_[i]) {
+      line_info << "[Eudm][Result][e;s;n;w:";
+      for (const auto& c : progress_cost_[i]) {
+        line_info << std::fixed << std::setprecision(2)
+                  << c.efficiency.ego_to_desired_vel << "_"
+                  << c.efficiency.leading_to_desired_vel << ";" << c.safety.rss
+                  << "_" << c.safety.occu_lane << ";"
+                  << c.navigation.lane_change_preference << ";" << c.weight;
+        line_info << "|";
+      }
+      line_info << "]";
+    }
+    LOG(WARNING) << line_info.str();
+  }
+  LOG(WARNING) << "[Eudm][Result]Sim status: " << sim_success << " with "
+               << num_valid_behaviors << " behaviors.";
+  if (!sim_success) {
+    LOG(ERROR) << "[Eudm][Fatal]Fail to find any valid behavior. Exit";
+    return kWrongStatus;
+  }
+
   // * evaluate
-  EvaluateMultiThreadSimResults(&winner_id_, &winner_score_);
+  if (EvaluateMultiThreadSimResults(&winner_id_, &winner_score_) != kSuccess) {
+    LOG(ERROR)
+        << "[Eudm][Fatal]fail to evaluate multi-thread sim results. Exit";
+    return kWrongStatus;
+  }
   return kSuccess;
 }
 
@@ -365,6 +419,7 @@ ErrorType EudmPlanner::UpdateSimSetupForLayer(
   LongitudinalBehavior lon_behavior;
   if (TranslateDcpActionToLonLatBehavior(action, &lat_behavior,
                                          &lon_behavior) != kSuccess) {
+    LOG(ERROR) << "Failed translating ego action to behavior during updating sim setup for layer"; 
     return kWrongStatus;
   }
   ego_fsagent->lat_behavior = lat_behavior;
@@ -382,6 +437,7 @@ ErrorType EudmPlanner::UpdateSimSetupForLayer(
           state, std::vector<int>(), LateralBehavior::kLaneKeeping,
           forward_lane_len, cfg_.sim().ref_line().backward_len_max(), false,
           &lane_current) != kSuccess) {
+    LOG(ERROR) << "[Eudm]fail to GetRefLaneForStateByBehavior for lane_current.";
     return kWrongStatus;
   }
   ego_fsagent->current_lane = lane_current;
@@ -392,6 +448,7 @@ ErrorType EudmPlanner::UpdateSimSetupForLayer(
           state, std::vector<int>(), ego_fsagent->lat_behavior,
           forward_lane_len, cfg_.sim().ref_line().backward_len_max(), false,
           &lane_target) != kSuccess) {
+    LOG(ERROR) << "[Eudm]fail to GetRefLaneForStateByBehavior: " << int(ego_fsagent->lat_behavior) << " for lane_target.";
     return kWrongStatus;
   }
   ego_fsagent->target_lane = lane_target;
@@ -402,6 +459,7 @@ ErrorType EudmPlanner::UpdateSimSetupForLayer(
           state, std::vector<int>(), ego_fsagent->lat_behavior_longterm,
           forward_lane_len, cfg_.sim().ref_line().backward_len_max(), false,
           &lane_longterm) != kSuccess) {
+    LOG(ERROR) << "[Eudm]fail to GetRefLaneForStateByBehavior: " << int(ego_fsagent->lat_behavior_longterm) << " for lane_longterm.";
     return kWrongStatus;
   }
   ego_fsagent->longterm_lane = lane_longterm;
@@ -452,8 +510,10 @@ ErrorType EudmPlanner::UpdateSimSetupForLayer(
             common::RssChecker::LongitudinalDirection::Front,
             rss_config_strict_as_rear_, &rss_dist);
 
+        LOG(INFO) << "Has front vehicle, and the rss dist is: " << rss_dist;
         if (s_front_rbumper - s_ego_fbumper < rss_dist) {
           // violate strict RSS
+          LOG(ERROR) << "[Eudm]violate strict RSS.";
           return kWrongStatus;
         }
       }
@@ -469,8 +529,10 @@ ErrorType EudmPlanner::UpdateSimSetupForLayer(
             common::RssChecker::LongitudinalDirection::Rear,
             rss_config_strict_as_front_, &rss_dist);
 
+        LOG(INFO) << "Has rear vehicle, and the rss dist is: " << rss_dist;
         if (s_ego_rbumper - s_rear_fbumper < rss_dist) {
           // violate strict RSS
+          LOG(ERROR) << "[Eudm]violate strict RSS.";
           return kWrongStatus;
         }
       }
@@ -507,7 +569,7 @@ ErrorType EudmPlanner::SimulateScenario(
   std::vector<CostStructure> cost_multilayers;
   std::set<int> risky_ids_multilayers;
 
-  // * Setup ego longitudinal sim config
+  // * Setup ego longitudinal and lateral sim config
   ForwardSimEgoAgent ego_fsagent_this_layer;
   ego_fsagent_this_layer.vehicle = ego_vehicle;
   UpdateSimSetupForScenario(action_seq, &ego_fsagent_this_layer);
@@ -545,7 +607,7 @@ ErrorType EudmPlanner::SimulateScenario(
                              &surround_trajs_multisteps) != kSuccess) {
       (*sub_sim_res)[sub_seq_id] = 0;
       (*sub_sim_info)[sub_seq_id] +=
-          std::string("(Sim ") + std::to_string(i) + std::string(" F)");
+          std::string("(Sim ") + std::to_string(i) + std::string("Simulate F)");
       return kWrongStatus;
     }
 
@@ -559,16 +621,18 @@ ErrorType EudmPlanner::SimulateScenario(
     }
 
     // * enforce strict safety check
+    bool is_collision = false;
+    map_itf_->CheckIfCollision(ego_fsagent_this_layer.vehicle.param(),
+                        ego_fsagent_this_layer.vehicle.state(),
+                        &is_collision);
     bool is_strictly_safe = false;
     int collided_id = 0;
-    TicToc timer;
-    if (StrictSafetyCheck(ego_traj_multisteps, surround_trajs_multisteps,
+    if (is_collision || StrictSafetyCheck(ego_traj_multisteps, surround_trajs_multisteps,
                           &is_strictly_safe, &collided_id) != kSuccess) {
       (*sub_sim_res)[sub_seq_id] = 0;
-      (*sub_sim_info)[sub_seq_id] += std::string("(Check F)");
+      (*sub_sim_info)[sub_seq_id] += std::string("(RSS Check F)");
       return kWrongStatus;
     }
-    // LOG(INFO) << "[RssTime]safety check time per action: " << timer.toc();
 
     if (!is_strictly_safe) {
       (*sub_sim_res)[sub_seq_id] = 0;
@@ -650,6 +714,7 @@ ErrorType EudmPlanner::SimulateActionSequence(
     const common::Vehicle& ego_vehicle,
     const ForwardSimAgentSet& surrounding_fsagents,
     const std::vector<DcpAction>& action_seq, const int& seq_id) {
+  // to prevent the pre-deleted action sequence to be simulated
   if (pre_deleted_seq_ids_.find(seq_id) != pre_deleted_seq_ids_.end()) {
     sim_res_[seq_id] = 0;
     sim_info_[seq_id] = std::string("(Pre-deleted)");
@@ -658,7 +723,6 @@ ErrorType EudmPlanner::SimulateActionSequence(
 
   // ~ For each ego sequence, we may further branch here, which will create
   // ~ multiple sub threads. Currently, we use n_sub_threads = 1
-  // TODO(@lu.zhang) Preliminary safety assessment here
   int n_sub_threads = 1;
 
   std::vector<int> sub_sim_res(n_sub_threads);
@@ -788,12 +852,36 @@ ErrorType EudmPlanner::RunOnce() {
   ego_id_ = ego_vehicle_.id();
   time_stamp_ = ego_vehicle_.state().time_stamp;
 
+  LOG(WARNING) << std::fixed << std::setprecision(4)
+               << "[Eudm]------ Eudm Cycle Begins (stamp): " << time_stamp_
+               << " ------- ";
+
   int ego_lane_id_by_pos = kInvalidLaneId;
   if (map_itf_->GetEgoLaneIdByPosition(std::vector<int>(),
                                        &ego_lane_id_by_pos) != kSuccess) {
     LOG(ERROR) << "[Eudm]Fatal (Exit) ego not on lane.";
     return kWrongStatus;
   }
+
+  LOG(WARNING) << std::fixed << std::setprecision(3)
+               << "[Eudm][Input]Ego plan state (x,y,theta,v,a,k):("
+               << ego_vehicle_.state().vec_position[0] << ","
+               << ego_vehicle_.state().vec_position[1] << ","
+               << ego_vehicle_.state().angle << ","
+               << ego_vehicle_.state().velocity << ","
+               << ego_vehicle_.state().acceleration << ","
+               << ego_vehicle_.state().curvature << ")"
+               << " lane id:" << ego_lane_id_by_pos;
+  LOG(WARNING) << "[Eudm][Setup]Desired vel:" << desired_velocity_
+               << " sim_time total:" << sim_time_total_
+               << " lc info[f_l,f_r,us_ol,us_or,solid_l,solid_r]:"
+               << lc_info_.forbid_lane_change_left << ","
+               << lc_info_.forbid_lane_change_right << ","
+               << lc_info_.lane_change_left_unsafe_by_occu << ","
+               << lc_info_.lane_change_right_unsafe_by_occu << ","
+               << lc_info_.left_solid_lane << "," << lc_info_.right_solid_lane;
+
+  ego_lane_id_ = ego_lane_id_by_pos;
   
   const decimal_t forward_rss_check_range = 130.0;
   const decimal_t backward_rss_check_range = 130.0;
@@ -803,7 +891,7 @@ ErrorType EudmPlanner::RunOnce() {
           ego_vehicle_.state(), std::vector<int>(),
           LateralBehavior::kLaneKeeping, forward_lane_len, backward_lane_len,
           false, &rss_lane_) != kSuccess) {
-    LOG(ERROR) << "[Eudm]No Rss lane available. Rss disabled";
+    LOG(ERROR) << "[Eudm]ego vehicle: No Rss lane available. Rss disabled";
   }
 
   if (rss_lane_.IsValid()) {
@@ -825,7 +913,24 @@ ErrorType EudmPlanner::RunOnce() {
     }
   }
 
-  RunEudm();
+  if (kSuccess != RunEudm()) {
+    LOG(ERROR) << "[Eudm]****** Eudm Cycle FAILED (stamp): " ;
+    return kWrongStatus;
+  }
+
+  auto action_script = dcp_tree_ptr_->action_script();
+  std::ostringstream line_info;
+  line_info << "[Eudm]SUCCESS id:" << winner_id_ << " [";
+  for (const auto& a : action_script[winner_id_]) {
+    line_info << DcpTree::RetLonActionName(a.lon);
+  }
+  line_info << "|";
+  for (const auto& a : action_script[winner_id_]) {
+    line_info << DcpTree::RetLatActionName(a.lat);
+  }
+  line_info << "] cost: " << std::fixed << std::setprecision(3) << winner_score_;
+  LOG(WARNING) << line_info.str();
+
   return kSuccess;
 }
 
@@ -882,9 +987,21 @@ ErrorType EudmPlanner::EvaluateSafetyStatus(
     bool is_rss_safe = true;
     common::RssChecker::LongitudinalViolateType type;
     decimal_t rss_vel_low, rss_vel_up;
-    common::RssChecker::RssCheck(traj_a[i], traj_b[i], rss_stf_, rss_config_,
+
+    // modified by jiangpeng for debugging
+    if (kSuccess != common::RssChecker::RssCheck(traj_a[i], traj_b[i], rss_stf_, rss_config_,
                                  &is_rss_safe, &type, &rss_vel_low,
-                                 &rss_vel_up);
+                                 &rss_vel_up)) {
+      common::State cur_veh_state = traj_b[i].state();
+      printf("other vehicle position: ");
+      std::cout << std::setprecision(12) << cur_veh_state.ToXYTheta() << std::endl;
+      int other_lane_id = 0;
+      decimal_t dist_tmp, arc_len_tmp;
+      map_itf_->GetNearestLaneIdUsingState(cur_veh_state.ToXYTheta(), std::vector<int>(), &other_lane_id,
+                                                &dist_tmp, &arc_len_tmp);
+      printf("other vehicle lane id is: %d.\n", other_lane_id);
+    }
+
     if (!is_rss_safe) {
       ret_is_rss_safe = false;
       *risky_id = traj_b.size() ? traj_b[0].id() : 0;
@@ -1076,31 +1193,32 @@ ErrorType EudmPlanner::CostFunction(
           (seq_lat_behavior == LateralBehavior::kLaneChangeLeft
                ? cfg_.cost().navigation().lane_change_left_unit_cost()
                : cfg_.cost().navigation().lane_change_right_unit_cost());
-      if (lc_info_.recommend_lc_left &&
-          seq_lat_behavior == LateralBehavior::kLaneChangeLeft) {
-        cost_tmp.navigation.lane_change_preference =
-            -std::max(cfg_.cost().navigation().lane_change_unit_cost_vel_lb(),
-                      ego_velocity) *
-            cfg_.cost().navigation().lane_change_left_recommendation_reward();
-        if (action.lat != DcpLatAction::kLaneChangeLeft) {
-          cost_tmp.navigation.lane_change_preference +=
-              std::max(cfg_.cost().navigation().lane_change_unit_cost_vel_lb(),
-                       ego_velocity) *
-              cfg_.cost().user().late_operate_unit_cost();
-        }
-      } else if (lc_info_.recommend_lc_right &&
-                 seq_lat_behavior == LateralBehavior::kLaneChangeRight) {
-        cost_tmp.navigation.lane_change_preference =
-            -std::max(cfg_.cost().navigation().lane_change_unit_cost_vel_lb(),
-                      ego_velocity) *
-            cfg_.cost().navigation().lane_change_right_recommendation_reward();
-        if (action.lat != DcpLatAction::kLaneChangeRight) {
-          cost_tmp.navigation.lane_change_preference +=
-              std::max(cfg_.cost().navigation().lane_change_unit_cost_vel_lb(),
-                       ego_velocity) *
-              cfg_.cost().user().late_operate_unit_cost();
-        }
-      }
+      // comment below, because there isn\t any lc_info_
+      // if (lc_info_.recommend_lc_left &&
+      //     seq_lat_behavior == LateralBehavior::kLaneChangeLeft) {
+      //   cost_tmp.navigation.lane_change_preference =
+      //       -std::max(cfg_.cost().navigation().lane_change_unit_cost_vel_lb(),
+      //                 ego_velocity) *
+      //       cfg_.cost().navigation().lane_change_left_recommendation_reward();
+      //   if (action.lat != DcpLatAction::kLaneChangeLeft) {
+      //     cost_tmp.navigation.lane_change_preference +=
+      //         std::max(cfg_.cost().navigation().lane_change_unit_cost_vel_lb(),
+      //                  ego_velocity) *
+      //         cfg_.cost().user().late_operate_unit_cost();
+      //   }
+      // } else if (lc_info_.recommend_lc_right &&
+      //            seq_lat_behavior == LateralBehavior::kLaneChangeRight) {
+      //   cost_tmp.navigation.lane_change_preference =
+      //       -std::max(cfg_.cost().navigation().lane_change_unit_cost_vel_lb(),
+      //                 ego_velocity) *
+      //       cfg_.cost().navigation().lane_change_right_recommendation_reward();
+      //   if (action.lat != DcpLatAction::kLaneChangeRight) {
+      //     cost_tmp.navigation.lane_change_preference +=
+      //         std::max(cfg_.cost().navigation().lane_change_unit_cost_vel_lb(),
+      //                  ego_velocity) *
+      //         cfg_.cost().user().late_operate_unit_cost();
+      //   }
+      // }
     }
   }
   cost_tmp.weight = duration;
@@ -1110,7 +1228,9 @@ ErrorType EudmPlanner::CostFunction(
 
 ErrorType EudmPlanner::GetSimTimeSteps(const DcpAction& action,
                                        std::vector<decimal_t>* dt_steps) const {
+  // sim_time_resolution: 0.2
   decimal_t sim_time_resolution = cfg_.sim().duration().step();
+  // action.t: 1
   decimal_t sim_time_total = action.t;
   int n_1 = std::floor(sim_time_total / sim_time_resolution);
   decimal_t dt_remain = sim_time_total - n_1 * sim_time_resolution;
@@ -1138,6 +1258,7 @@ ErrorType EudmPlanner::SimulateSingleAction(
 
   // ~ Simulation time steps
   std::vector<decimal_t> dt_steps;
+  // dt_steps: 0.2
   GetSimTimeSteps(action, &dt_steps);
 
   ForwardSimEgoAgent ego_fsagent_this_step = ego_fsagent_this_layer;
@@ -1254,7 +1375,6 @@ ErrorType EudmPlanner::EgoAgentForwardSim(
       }
     }
 
-    // TODO(lu.zhang): consider lateral social force to get lateral offset
     decimal_t lat_track_offset = 0.0;
     if (planning::OnLaneForwardSimulation::PropagateOnceAdvancedLK(
             ego_fsagent.target_stf, ego_fsagent.vehicle, leading_vehicle,
@@ -1292,7 +1412,6 @@ ErrorType EudmPlanner::EgoAgentForwardSim(
           all_sim_vehicles.vehicles.at(ego_fsagent.target_gap_ids(1));
     }
 
-    // TODO(lu.zhang): consider lateral social force to get lateral offset
     decimal_t lat_track_offset = 0.0;
     auto sim_param = ego_fsagent.sim_param;
 

@@ -17,8 +17,8 @@ ErrorType SscPlanner::Init(const std::string config_path) {
   ReadConfig(config_path);
 
   // * Planner config
-  printf("\nSscPlanner Config:\n");
-  printf(" -- weight_proximity: %lf\n", cfg_.planner_cfg().weight_proximity());
+  // printf("\nSscPlanner Config:\n");
+  // printf(" -- weight_proximity: %lf\n", cfg_.planner_cfg().weight_proximity());
 
   // LOG(INFO) << "[Ssc]SscPlanner Config:";
   // LOG(INFO) << "[Ssc] -- low spd threshold: "

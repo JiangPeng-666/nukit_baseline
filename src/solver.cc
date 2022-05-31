@@ -41,7 +41,6 @@ namespace planning{
   string pwd_cfg = s_tmp + "config/";
   string pwd_core = s_tmp + "core/";
   agent_config_path = pwd_cfg + "highway_v1.0/agent_config.json";
-  agent_config_path = pwd_cfg + "highway_v1.0/agent_config.json";
   vehicle_info_path = pwd_cfg + "highway_v1.0/vehicle_set.json";
   map_path = pwd_cfg + "highway_v1.0/obstacles_norm.json";
   lane_net_path = pwd_cfg + "highway_v1.0/lane_net_norm.json";
@@ -54,8 +53,15 @@ namespace planning{
         right_connnection, ego, agents, obstacles);
   semantic_map_manager::SemanticMapManager smm_(ego_id, agent_config_path);
   p_data_renderer_ = new semantic_map_manager::DataRenderer(&smm_);
-  p_data_renderer_->Render(smm_.time_stamp(), phy_sim.lane_net(), phy_sim.vehicle_set(), 
-                    phy_sim.obstacle_set());
+  vector<vector<double>>res_failed(1, vector<double>(1));
+
+  if (kSuccess != p_data_renderer_->Render(smm_.time_stamp(), phy_sim.lane_net(), phy_sim.vehicle_set(), 
+                  phy_sim.obstacle_set())) {
+    google::ShutdownGoogleLogging();
+    return res_failed;
+    }
+  
+  
   bp_manager_.Init(bp_config_path);
   ssc_planner_.Init(ssc_config_path);
 
@@ -63,10 +69,26 @@ namespace planning{
   printf("Behavior planning begins.------------------------\n");
   auto map_ptr = std::make_shared<semantic_map_manager::SemanticMapManager>(smm_);
   task_.user_perferred_behavior = 0;
-  task_.user_desired_vel = 20;
+  task_.user_desired_vel = 10;
   task_.is_under_ctrl = true;
-  vector<double> terminate = bp_manager_.Run(smm_.time_stamp(), map_ptr, task_);
-  cout << "terminate(x, y): " << terminate[0] << terminate[1] << endl;
+  vector<vector<double>> bp_res = bp_manager_.Run(smm_.time_stamp(), map_ptr, task_);
+  
+  int bp_res_size = bp_res.size();
+  if (bp_res_size == 0) {
+    google::ShutdownGoogleLogging();
+    return res_failed;
+  }
+  cout << "bp_res_size: " << bp_res_size << endl;
+  // cout << "[Debug]bp_res: \n";
+  // for (int i = 0; i < bp_res_size; ++i) {
+  //   for (int j = 0; j < bp_res[i].size(); ++j) {
+  //     cout << std::setprecision(12) << bp_res[i][j] << ", ";
+  //   }
+  //   cout << endl;
+  // }
+  // cout << endl;
+  vector<double> terminate = {bp_res[bp_res_size - 1][0], bp_res[bp_res_size - 1][1]};
+
   common::SemanticBehavior behavior;
   bp_manager_.ConstructBehavior(&behavior);
   smm_.set_ego_behavior(behavior);
@@ -77,7 +99,13 @@ namespace planning{
   map_ptr = std::make_shared<semantic_map_manager::SemanticMapManager>(smm_);
   map_adapter_.set_map(map_ptr);
   ssc_planner_.set_map_interface(&map_adapter_);
-  ssc_planner_.RunOnce();
+
+  if (kSuccess != ssc_planner_.RunOnce()) {
+    // if ssc failed, return bp_res directly
+    printf("Failed motion planning by SSC.\n");
+    google::ShutdownGoogleLogging();
+    return bp_res;
+  }
   next_traj_ = std::move(ssc_planner_.trajectory());
   next_traj_->GetState(t, &desired_state);
   printf("Motion planning finished.\n");
@@ -85,21 +113,21 @@ namespace planning{
   // result
   vector<vector<double>> ego_traj;
   int cnt = 0;
-  while (std::pow((terminate[0] - desired_state.vec_position[0]), 2) + 
-      std::pow((terminate[1] - desired_state.vec_position[1]), 2) > 0.001) {
+  while (std::hypot(terminate[0] - desired_state.vec_position[0],
+      terminate[1] - desired_state.vec_position[1]) > 0.001) {
       t = global_init_stamp_ + plan_horizon * (cnt++);
       next_traj_->GetState(t, &desired_state);
       vector<double> res;
       res.push_back(desired_state.vec_position[0]);//x
       res.push_back(desired_state.vec_position[1]);//y
+      res.push_back(desired_state.angle);//theta
       res.push_back(desired_state.velocity);//v
       res.push_back(desired_state.acceleration);//a
-      res.push_back(desired_state.angle);//theta
-      
       ego_traj.push_back(res);
     }
   cout << "The size of ego_traj: " << ego_traj.size() << endl;
 
+  google::ShutdownGoogleLogging();
   return ego_traj;
   }
 }

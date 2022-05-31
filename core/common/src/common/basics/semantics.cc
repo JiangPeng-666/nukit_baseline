@@ -1,18 +1,32 @@
 #include "common/basics/semantics.h"
+#include <iostream>
+#include <fstream>
 
 namespace common {
 
 void VehicleParam::print() const {
-  printf("VehicleParam:\n");
-  printf(" -- width:\t %lf.\n", width_);
-  printf(" -- length:\t %lf.\n", length_);
-  printf(" -- wheel_base:\t %lf.\n", wheel_base_);
-  printf(" -- front_suspension:\t %lf.\n", front_suspension_);
-  printf(" -- rear_suspension:\t %lf.\n", rear_suspension_);
-  printf(" -- d_cr:\t %lf.\n", d_cr_);
-  printf(" -- max_steering_angle:\t %lf.\n", max_steering_angle_);
-  printf(" -- max_longitudinal_acc:\t %lf.\n", max_longitudinal_acc_);
-  printf(" -- max_lateral_acc:\t %lf.\n", max_lateral_acc_);
+  std::ofstream outfile;
+  outfile.open("/home/lain/jiangpeng/nukit_baseline/vehicles.txt", std::ios::out|std::ios::app);
+  outfile << "VehicleParam:\n";
+  outfile << " -- width:\t " << width_ << "\n";
+  outfile << " -- length:\t " << length_ << "\n";
+  outfile << " -- wheel_base:\t " << wheel_base_ << "\n";
+  outfile << " -- front_suspension:\t " << front_suspension_ << "\n";
+  outfile << " -- rear_suspension:\t " << rear_suspension_ << "\n";
+  outfile << " -- d_cr:\t " << d_cr_ << "\n";
+  outfile << " -- max_steering_angle:\t " << max_steering_angle_ << "\n";
+  outfile << " -- max_longitudinal_acc:\t " << max_longitudinal_acc_ << "\n";
+  outfile << " -- max_lateral_acc:\t " << max_lateral_acc_ << "\n";
+  // printf("VehicleParam:\n");
+  // printf(" -- width:\t %lf.\n", width_);
+  // printf(" -- length:\t %lf.\n", length_);
+  // printf(" -- wheel_base:\t %lf.\n", wheel_base_);
+  // printf(" -- front_suspension:\t %lf.\n", front_suspension_);
+  // printf(" -- rear_suspension:\t %lf.\n", rear_suspension_);
+  // printf(" -- d_cr:\t %lf.\n", d_cr_);
+  // printf(" -- max_steering_angle:\t %lf.\n", max_steering_angle_);
+  // printf(" -- max_longitudinal_acc:\t %lf.\n", max_longitudinal_acc_);
+  // printf(" -- max_lateral_acc:\t %lf.\n", max_lateral_acc_);
 }
 
 Vehicle::Vehicle() {}
@@ -43,11 +57,18 @@ ErrorType Vehicle::Ret3DofStateAtGeometryCenter(Vec3f *state) const {
 }
 
 void Vehicle::print() const {
-  printf("\nVehicle:\n");
-  printf(" -- ID:\t%d\n", id_);
-  printf(" -- Subclass:\t%s\n", subclass_.c_str());
+  std::ofstream outfile;
+  outfile.open("/home/lain/jiangpeng/nukit_baseline/vehicles.txt", std::ios::out|std::ios::app);
+  outfile << "\nVehicle:\n";
+  outfile << " -- ID:\t" << id_ <<  "\n";
+  outfile << " -- Subclass:\t" << subclass_.c_str() << "\n";
   param_.print();
   state_.print();
+  // printf("\nVehicle:\n");
+  // printf(" -- ID:\t%d\n", id_);
+  // printf(" -- Subclass:\t%s\n", subclass_.c_str());
+  // param_.print();
+  // state_.print();
 }
 
 OrientedBoundingBox2D Vehicle::RetOrientedBoundingBox() const {
@@ -84,12 +105,19 @@ ErrorType Vehicle::RetBumperVertices(std::array<Vec2f, 2> *vertices) const {
 }
 
 void VehicleSet::print() const {
-  printf("Vehicle Set Info:\n");
+  std::ofstream outfile;
+  outfile.open("/home/lain/jiangpeng/nukit_baseline/vehicles.txt", std::ios::out|std::ios::app);
+  outfile << "Vehicle Set Info:\n";
   for (auto iter = vehicles.begin(); iter != vehicles.end(); ++iter) {
-    printf("\n -- ID. %d:\n", iter->first);
     iter->second.print();
   }
-  printf("\n");
+  outfile << "\n";
+  // printf("Vehicle Set Info:\n");
+  // for (auto iter = vehicles.begin(); iter != vehicles.end(); ++iter) {
+  //   printf("\n -- ID. %d:\n", iter->first);
+  //   iter->second.print();
+  // }
+  // printf("\n");
 }
 
 VehicleControlSignal::VehicleControlSignal() {}
@@ -346,12 +374,51 @@ void LaneRaw::print() const {
 }
 
 void LaneNet::print() const {
-  printf("LaneNet:\n");
-  printf(" -- Number of lanes:\t%d\n", static_cast<int>(lane_set.size()));
+  // modified by jiangpeng 4.20
+  // printf("LaneNet:\n");
+  // printf(" -- Number of lanes:\t%d\n", static_cast<int>(lane_set.size()));
+  // for (auto it = lane_set.begin(); it != lane_set.end(); ++it) {
+  //   it->second.print();
+  // }
+  // printf("\n");
+  
+  std::ofstream outfile;
+  outfile.open("/home/lain/jiangpeng/nukit_baseline/lanes.txt", std::ios::out|std::ios::trunc);
+  outfile << " -- Number of lanes:\t" <<  static_cast<int>(lane_set.size()) << "\n";
   for (auto it = lane_set.begin(); it != lane_set.end(); ++it) {
-    it->second.print();
+    outfile << "Lane_id:\t"  << it->second.id << "\n";
+    // outfile << " -- dir:\t" << it->second.dir << "\n";
+
+    outfile << " -- child_id:\t[";
+    for (const auto &id : it->second.child_id) {
+      outfile << " " << id << " ";
+    }
+    outfile << "]\n";
+
+    outfile << " -- father_id:\t[";
+    for (const auto &id : it->second.father_id) {
+      outfile << " " << id << " ";
+    }
+    outfile << "]\n";
+    outfile << " -- length:\t" << it->second.length << "\n";
+    outfile << " -- l_lane_id:\t" << it->second.l_lane_id << "\n";
+    outfile << " -- l_change_avbl:\t" << it->second.l_change_avbl << "\n";
+    outfile << " -- r_lane_id:\t" <<  it->second.r_lane_id << "\n";
+    outfile << " -- r_change_avbl:\t" << it->second.r_change_avbl << "\n";
+
+    outfile << " -- behavior:\t" <<  it->second.behavior.c_str() << "\n";
+
+    outfile << " -- start_point: (" << std::setprecision(12) << it->second.start_point(0) << ", " << it->second.start_point(1) << ")\n";
+    outfile << " -- final_point: (" << std::setprecision(12) << it->second.final_point(0) << ", " << it->second.final_point(1) << ")\n";
+    outfile << " -- point number: " << static_cast<int>(it->second.lane_points.size()) << "\n";
+    // for (int k = 0; k < it->second.lane_points.size(); ++k) {
+    //   outfile << "[" << std::setprecision(10) << it->second.lane_points[k][0] - 664550 << ", " 
+    //   << std::setprecision(10) << it->second.lane_points[k][1] - 3997880 << "] ";
+    //   if (k % 5 == 0) outfile << "\n" ;
+    // }
+    outfile << "\n";
   }
-  printf("\n");
+  outfile.close();
 }
 
 void SemanticLaneSet::print() const {

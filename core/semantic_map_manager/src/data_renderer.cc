@@ -39,77 +39,18 @@ ErrorType DataRenderer::Render(const double &time_stamp,
   GetWholeLaneNet(lane_net);
   GetSurroundingLaneNet(lane_net);
   GetSurroundingVehicles(vehicle_set);
-
-  if (p_semantic_map_manager_->agent_config_info().enable_tracking_noise) {
-    InjectObservationNoise();
-    p_semantic_map_manager_->set_uncertain_vehicle_ids(uncertain_vehicle_ids_);
-  }
+  // vehicle_set.print();
+  // lane_net.print();
+  // obstacle_set.print();
 
   FakeMapper();
 
   p_semantic_map_manager_->UpdateSemanticMap(
       time_stamp_, ego_vehicle_, whole_lane_net_, surrounding_lane_net_,
       *p_obstacle_grid_, obs_grids_, surrounding_vehicles_);
+  
   printf("Finished rendering.\n");
   
-  return kSuccess;
-}
-
-ErrorType DataRenderer::InjectObservationNoise() {
-  // * update uncertain vehicle ids if necessary
-  if (ego_id_ != 0) return kSuccess;
-  cnt_random_++;
-
-  if (cnt_random_ == 10) {
-    uncertain_vehicle_ids_.clear();
-    const decimal_t angle_noise_std = 0.22;
-    std::normal_distribution<double> lat_pos_dist(0.0, 0.2);
-    std::normal_distribution<double> long_pos_dist(0.0, 0.7);
-    std::normal_distribution<double> angle_dist(0.0, angle_noise_std);
-
-    // * sample vehicle
-    std::vector<int> surrounding_ids;
-    for (const auto &v : surrounding_vehicles_.vehicles) {
-      surrounding_ids.push_back(v.first);
-    }
-    std::shuffle(surrounding_ids.begin(), surrounding_ids.end(),
-                 random_engine_);
-
-    std::vector<int> sampled_ids;
-    for (int i = 0; i < 3 && i < surrounding_ids.size(); i++) {
-      sampled_ids.push_back(surrounding_ids[i]);
-    }
-
-    // * inject noise
-    for (auto &v : surrounding_vehicles_.vehicles) {
-      if (std::find(sampled_ids.begin(), sampled_ids.end(), v.first) ==
-          sampled_ids.end())
-        continue;
-
-      decimal_t lateral_position_noise = lat_pos_dist(random_engine_);
-      decimal_t long_position_noise = long_pos_dist(random_engine_);
-      decimal_t angle_noise = angle_dist(random_engine_);
-
-      common::State original_state = v.second.state();
-      Vec2f original_position = original_state.vec_position;
-      decimal_t angle = original_state.angle;
-      Vec2f augmented_position =
-          Vec2f(original_position.x() + lateral_position_noise * sin(angle) +
-                    long_position_noise * cos(angle),
-                original_position.y() - lateral_position_noise * cos(angle) +
-                    long_position_noise * sin(angle));
-      original_state.vec_position = augmented_position;
-      original_state.angle =
-          normalize_angle(original_state.angle + angle_noise);
-
-      if (fabs(angle_noise) > 1.5 * angle_noise_std &&
-          v.second.type().compare("brokencar") != 0)
-        uncertain_vehicle_ids_.push_back(v.first);
-
-      v.second.set_state(original_state);
-    }
-    cnt_random_ = 0;
-  }
   return kSuccess;
 }
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.13)
 project(semantic_map_manager)
 
 set(CMAKE_VERBOSE_MAKEFILE "true")

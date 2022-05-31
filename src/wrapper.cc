@@ -44,19 +44,23 @@ py::object BuildAOutput(const py::object &in_obj, py::object &data) {
     np::ndarray ego_tmp = np::from_object(dataList.slice(7, 8));
     np::ndarray agents_tmp = np::from_object((dataList.slice(8, 9))[0]);
     np::ndarray obstacles_tmp = np::from_object((dataList.slice(9, 10))[0]);
+        // one-dimension: 1 * num (shape(0))
         // row: shape(0), col: shape(1)
 
         // lanes_id(vector<int>, 1 * nums)
-    int* lanes_id_tmp_ptr = reinterpret_cast<int*>(lanes_id_tmp.get_data());
-    for (int i = 0; i < static_cast<int>(lanes_id_tmp.shape(1)); i++){
-        lanes_id.push_back(*(lanes_id_tmp_ptr + i));
+    // int* lanes_id_tmp_ptr = reinterpret_cast<int*>(lanes_id_tmp.get_data());
+    for (int i = 0; i < static_cast<int>(lanes_id_tmp.shape(0)); ++i){
+        int* lanes_id_tmp_ptr = reinterpret_cast<int*>(np::from_object(lanes_id_tmp[i]).get_data());
+        lanes_id.push_back(*(lanes_id_tmp_ptr));
     }
+
         // lanes_length(vector<double>, 1 * nums)
     double* lanes_length_tmp_ptr = reinterpret_cast<double*>(lanes_length_tmp.get_data());
-    for (int i = 0; i < static_cast<int>(lanes_length_tmp.shape(1)); i++){
+    for (int i = 0; i < static_cast<int>(lanes_length_tmp.shape(0)); i++){
         lanes_length.push_back(*(lanes_length_tmp_ptr + i));
     }
     
+
     // points(vector<vector<vector<double>>>, nums_lanes * nums_points * 2)
     for (int i = 0; i < points_tmp.shape(0); ++i) {
         vector<vector<double>> points_1;
@@ -105,7 +109,7 @@ py::object BuildAOutput(const py::object &in_obj, py::object &data) {
         }
         left_connection.push_back(left_connection_2);
     }
-    
+
         // right_connection(vector<vector<int>>, nums_lanes * (0 or 1))
     for (int i = 0; i < right_connection_tmp.shape(0); i++) {
         vector<int> right_connection_2;
@@ -116,8 +120,8 @@ py::object BuildAOutput(const py::object &in_obj, py::object &data) {
         }
         right_connection.push_back(right_connection_2);
     }
-    
-        // ego(vector<double>, nums * 5)
+
+        // ego(vector<double>, nums * 7)
     double* ego_tmp_ptr = reinterpret_cast<double*>(ego_tmp.get_data());
     for (int i = 0; i < static_cast<int>(ego_tmp.shape(1)); i++){
         ego.push_back(*(ego_tmp_ptr + i));
@@ -151,7 +155,6 @@ py::object BuildAOutput(const py::object &in_obj, py::object &data) {
     auto result = instance_ptr->solver(lanes_id, lanes_length, points, pre_connections, 
             nxt_connections, left_connection, right_connection, ego, agents, obstacles);
 
-    // result
     py::list ret_lst;
     for (int i = 0; i < static_cast<int>(result.size()); i++){
         py::list ret_lst_tmp;

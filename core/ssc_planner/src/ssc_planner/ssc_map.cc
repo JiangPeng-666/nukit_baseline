@@ -5,7 +5,7 @@
 namespace planning {
 
 SscMap::SscMap(const SscMap::Config &config) : config_(config) {
-  config_.Print();
+  // config_.Print();
 
   p_3d_grid_ = new common::GridMapND<SscMapDataType, 3>(
       config_.map_size, config_.map_resolution, config_.axis_name);

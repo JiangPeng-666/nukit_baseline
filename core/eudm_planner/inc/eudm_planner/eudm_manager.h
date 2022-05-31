@@ -23,8 +23,8 @@ class EudmManager {
 
   struct ReplanningContext {
     bool is_valid = false;
-    decimal_t seq_start_time;
-    std::vector<DcpAction> action_seq;
+    decimal_t seq_start_time = 0.0;
+    std::vector<DcpAction> action_seq = {};
   };
 
   struct ActivateLaneChangeRequest {
@@ -78,7 +78,7 @@ class EudmManager {
 
   void Init(const std::string& config_path);
 
-  std::vector<double> Run(
+  std::vector<std::vector<double>> Run(
       const decimal_t stamp,
       const std::shared_ptr<semantic_map_manager::SemanticMapManager>& map_ptr,
       const planning::eudm::Task& task);

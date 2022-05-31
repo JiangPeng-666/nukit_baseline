@@ -49,7 +49,6 @@ class DataRenderer {
 
   ErrorType RayCastingOnObstacleMap();
   ErrorType FakeMapper();
-  ErrorType InjectObservationNoise();
 
   bool if_kdtree_lane_net_updated_ = false;
   common::PointVecForKdTree lane_net_pts_;

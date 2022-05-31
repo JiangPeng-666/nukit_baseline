@@ -30,7 +30,7 @@ bool ArenaLoader::ParseVehicleSet(common::VehicleSet *p_vehicle_set,
   // loading
   for (int j = 0; j <= static_cast<int>(agents.size()); ++j) {
     int i;
-    if (j < static_cast<int>(agents.size())) {i = 1;}
+    if (j > 0) {i = 1;}
     else {i = 0;}
     common::Vehicle vehicle;
     vehicle.set_id(j);
@@ -39,30 +39,32 @@ bool ArenaLoader::ParseVehicleSet(common::VehicleSet *p_vehicle_set,
 
     Json state_json = info_json[i]["init_state"];
     common::State state;
-    if (i == 0) {
+    if (j == 0) {
       state.vec_position(0) = ego[0];
       state.vec_position(1) = ego[1];
       state.angle = ego[2];
-      state.velocity = 0;
+      state.acceleration = ego[3];
+      state.velocity = ego[4];
     } else {
-      state.vec_position(0) = agents[j][0];
-      state.vec_position(1) = agents[j][1];
-      state.angle = agents[j][2];
-      state.velocity = sqrt(pow(agents[j][3], 2) + pow(agents[j][4], 2));
+      // if (agents[j][0] == 0) break;
+      state.vec_position(0) = agents[j - 1][0];
+      state.vec_position(1) = agents[j - 1][1];
+      state.angle = agents[j - 1][2];
+      state.acceleration = 0.0;
+      state.velocity = std::hypot(agents[j - 1][3], agents[j - 1][4]);
     }
     state.curvature = state_json["curvature"].get<double>();
-    state.acceleration = state_json["acceleration"].get<double>();
     state.steer = state_json["steer"].get<double>();
     vehicle.set_state(state);
 
     Json params_json = info_json[i]["params"];
     common::VehicleParam param;
-    if (i == 0) {
-      param.set_width(ego[3]);
-      param.set_length(ego[4]);
+    if (j == 0) {
+      param.set_width(ego[5]);
+      param.set_length(ego[6]);
     } else {
-      param.set_width(agents[j][6]);
-      param.set_length(agents[j][7]);
+      param.set_width(agents[j - 1][6]);
+      param.set_length(agents[j - 1][7]);
     }
     param.set_wheel_base(params_json["wheel_base"].get<double>());
     param.set_front_suspension(params_json["front_suspension"].get<double>());
@@ -105,9 +107,9 @@ ErrorType ArenaLoader::ParseMapInfo(common::ObstacleSet *p_obstacle_set,
     poly.id = i;
     if (i < obstacles.size() - 1) poly.type = 0;
     else poly.type = 1;
-    int num_pts = static_cast<int>(obstacles[i].size());
+    int num_pts = (static_cast<int>(obstacles[i].size())) / 2;
     for (int k = 0; k < num_pts; ++k) {
-      common::Point point(obstacles[i][0], obstacles[i][1]);
+      common::Point point(obstacles[i][2 * k], obstacles[i][2 * k + 1]);
       poly.polygon.points.push_back(point);
     }
     p_obstacle_set->obs_polygon.insert(
@@ -143,39 +145,53 @@ ErrorType ArenaLoader::ParseLaneNetInfo(common::LaneNet *p_lane_net,
     Json lane_json = lane_net_json[j];
     Json lane_meta = lane_json["properties"];
 
-    lane_raw.id = i;
+    lane_raw.id = lanes_id[i];
     lane_raw.length = lanes_length[i];
     lane_raw.dir = 1;
 
     // printf("-Lane id %d.\n", lane_raw.id);
-    if (i < lanes_id.size() - 1) {
-      for (const auto lane_id : nxt_connections[i]) {
-        if (lane_id != 0) lane_raw.child_id.push_back(lane_id);
-      }
+    // if (i <= lanes_id.size() - 1) {
+    //   for (const auto id : nxt_connections[i]) {
+    //     if (id > 0) lane_raw.child_id.push_back(id);
+    //   }
+    // }
+
+    // if (i >= 0) {
+    //   for (const auto &id : pre_connections[i]) {
+    //     if (id > 0) lane_raw.father_id.push_back(id);
+    //   }
+    // }
+    for (const auto &id : nxt_connections[i]) {
+      if (id > 0) lane_raw.child_id.push_back(id);
     }
 
-    if (i > 0) {
-      for (const auto &lane_id : pre_connections[i]) {
-        if (lane_id != 0) lane_raw.father_id.push_back(lane_id);
-      }
+    for (const auto &id : pre_connections[i]) {
+      if (id > 0) lane_raw.father_id.push_back(id);
     }
 
     int lchg_vld = 0;
     int rchg_vld = 0;
+    lane_raw.l_lane_id = 0;
+    lane_raw.r_lane_id = 0;
     for (const auto &lane_id : left_connection[i]) {
+      if (lane_id == -1 || lane_id > 80000 || lane_id < 0) continue;
       lane_raw.l_lane_id = lane_id;
       lchg_vld = 1;
     }
     for (const auto &lane_id : right_connection[i]) {
+      if (lane_id == -1 || lane_id > 80000 || lane_id < 0) continue;
       lane_raw.r_lane_id = lane_id;
       rchg_vld = 1;
     }
 
     lane_raw.l_change_avbl = static_cast<bool>(lchg_vld);
     lane_raw.r_change_avbl = static_cast<bool>(rchg_vld);
+    if (lane_raw.l_lane_id > 0) lane_raw.l_change_avbl = static_cast<bool>(1);
+    if (lane_raw.r_lane_id > 0) lane_raw.r_change_avbl = static_cast<bool>(1);
     lane_raw.behavior = "s";
 
     for (int k = 0; k < points[i].size(); ++k) {
+      if (points[i][k][0] < 0) break;
       Vec2f pt(points[i][k][0], points[i][k][1]);
       lane_raw.lane_points.emplace_back(pt);
     }
@@ -184,7 +200,7 @@ ErrorType ArenaLoader::ParseLaneNetInfo(common::LaneNet *p_lane_net,
     p_lane_net->lane_set.insert(
         std::pair<int, common::LaneRaw>(lane_raw.id, lane_raw));
   }
-  // p_lane_net->print();
+  p_lane_net->print();
 
   fs.close();
   return kSuccess;

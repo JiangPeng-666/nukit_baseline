@@ -44,9 +44,6 @@ class SemanticMapManager {
   ErrorType CheckCollisionUsingGlobalPosition(const Vec2f &p_w,
                                               bool *res) const;
 
-  ErrorType GetObstacleMapValueUsingGlobalPosition(const Vec2f &p_w,
-                                                   ObstacleMapType *res);
-
   ErrorType CheckCollisionUsingStateAndVehicleParam(
       const common::VehicleParam &vehicle_param, const common::State &state,
       bool *res);
@@ -79,10 +76,6 @@ class SemanticMapManager {
   ErrorType NaiveRuleBasedLateralBehaviorPrediction(
       const common::Vehicle &vehicle, const int nearest_lane_id,
       common::ProbDistOfLatBehaviors *lat_probs);
-
-  ErrorType MobilRuleBasedBehaviorPrediction(
-      const common::Vehicle &vehicle, const common::VehicleSet &nearby_vehicles,
-      common::ProbDistOfLatBehaviors *res);
 
   ErrorType TrajectoryPredictionForVehicle(const common::Vehicle &vehicle,
                                            const common::Lane &lane,
@@ -229,10 +222,6 @@ class SemanticMapManager {
   inline void set_ego_behavior(const common::SemanticBehavior &in) {
     ego_behavior_ = in;
   }
-  inline void set_uncertain_vehicle_ids(
-      const std::vector<int> &uncertain_vehicle_ids) {
-    uncertain_vehicle_ids_ = uncertain_vehicle_ids;
-  }
 
  private:
   ErrorType UpdateSemanticLaneSet();
@@ -322,7 +311,6 @@ class SemanticMapManager {
   // * open loop prediction only for collision checking for onlane mp
   std::unordered_map<int, vec_E<common::State>> openloop_pred_trajs_;
 
-  TicToc global_timer_;
   TrafficSignalManager traffic_singal_manager_;
   ConfigLoader *p_config_loader_;
 

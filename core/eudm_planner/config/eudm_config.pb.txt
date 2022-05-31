@@ -4,8 +4,8 @@ status: "SET"
 
 cost {
   effciency {
-    ego_lack_speed_to_desired_unit_cost: 0.3
-    ego_over_speed_to_desired_unit_cost: 0.03
+    ego_lack_speed_to_desired_unit_cost: 0.1
+    ego_over_speed_to_desired_unit_cost: 0.05
     ego_desired_speed_tolerate_gap: 1.0
     leading_distance_th: 120.0
     min_distance_ratio: 0.4
@@ -160,7 +160,7 @@ safety {
   strict_check_enable: true
   strict {
     inflation_w: 0.1
-    inflation_h: 0.1
+    inflation_h: 0.5
   }
   rss_check_enable: true
   rss {

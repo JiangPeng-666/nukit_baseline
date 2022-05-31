@@ -54,6 +54,8 @@ class EudmPlannerMapAdapter : public EudmPlannerMapItf {
                                      const common::VehicleParam &param_b,
                                      const common::State &state_b,
                                      bool *res) override;
+  ErrorType CheckIfCollision(const common::VehicleParam &vehicle_param,
+                                    const State &state, bool *res) override;
   ErrorType GetLeadingVehicleOnLane(
       const common::Lane &ref_lane, const common::State &ref_state,
       const common::VehicleSet &vehicle_set, const decimal_t &lat_range,

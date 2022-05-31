@@ -35,7 +35,7 @@ ErrorType ConfigLoader::ParseAgentConfig(AgentConfigInfo *p_agent_config) {
     }
   }
 
-  p_agent_config->PrintInfo();
+  // p_agent_config->PrintInfo();
   printf("agent config loading finished.\n");
   fs.close();
   return kSuccess;

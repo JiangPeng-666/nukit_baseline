@@ -293,15 +293,13 @@ ErrorType RssChecker::RssCheck(const Vehicle& ego_vehicle,
                                bool* is_safe, LongitudinalViolateType* lon_type,
                                decimal_t* rss_vel_low, decimal_t* rss_vel_up) {
   FrenetState ego_fs, other_fs;
-  // TODO(lu.zhang): construct stf is a little bit heavy
-  // StateTransformer stf(ref_lane);
   if (stf.GetFrenetStateFromState(ego_vehicle.state(), &ego_fs) != kSuccess) {
     printf("[RssChecker]ego not on ref lane.\n");
     return kWrongStatus;
   }
   if (stf.GetFrenetStateFromState(other_vehicle.state(), &other_fs) !=
       kSuccess) {
-    printf("[RssChecker]other %d not on ref lane.\n", other_vehicle.id());
+    printf("[RssChecker]other vehicle(id: %d) not on ref lane.\n", other_vehicle.id());
     return kWrongStatus;
   }
 

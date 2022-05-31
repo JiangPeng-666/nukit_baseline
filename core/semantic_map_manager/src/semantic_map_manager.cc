@@ -9,7 +9,6 @@ SemanticMapManager::SemanticMapManager(const int &id,
   p_config_loader_->set_ego_id(ego_id_);
   p_config_loader_->set_agent_config_path(agent_config_path_);
   p_config_loader_->ParseAgentConfig(&agent_config_info_);
-  global_timer_.tic();
 }
 
 SemanticMapManager::SemanticMapManager(
@@ -49,9 +48,9 @@ ErrorType SemanticMapManager::UpdateSemanticMap(
     UpdateLocalLanesAndFastLut();
   }
 
-  // * update semantic info for vehicles
+// * update semantic info for vehicles
   UpdateSemanticVehicles();
-
+  
   // * update selected key vehicles
   UpdateKeyVehicles();
 
@@ -169,53 +168,6 @@ ErrorType SemanticMapManager::NaiveRuleBasedLateralBehaviorPrediction(
   return kSuccess;
 }
 
-ErrorType SemanticMapManager::MobilRuleBasedBehaviorPrediction(
-    const common::Vehicle &vehicle, const common::VehicleSet &nearby_vehicles,
-    common::ProbDistOfLatBehaviors *res) {
-  decimal_t lane_radius = agent_config_info_.surrounding_search_radius;
-
-  vec_E<common::Lane> lanes;
-  vec_E<common::Vehicle> leading_vehicles;
-  vec_E<common::Vehicle> following_vehicles;
-  vec_E<common::FrenetState> leading_frenet_states;
-  vec_E<common::FrenetState> follow_frenet_states;
-
-  std::vector<LateralBehavior> behaviors{LateralBehavior::kLaneKeeping,
-                                         LateralBehavior::kLaneChangeLeft,
-                                         LateralBehavior::kLaneChangeRight};
-
-  for (const auto &behavior : behaviors) {
-    // ~ Prepare lane
-    common::Lane ref_lane;
-    GetRefLaneForStateByBehavior(vehicle.state(), std::vector<int>(), behavior,
-                                 lane_radius, lane_radius, false, &ref_lane);
-
-    // ~ Prepare leading and following vehicle
-    bool has_leading_vehicle = false, has_following_vehicle = false;
-    common::Vehicle leading_vehicle, following_vehicle;
-    common::FrenetState leading_frenet_state, following_frenet_state;
-    GetLeadingAndFollowingVehiclesFrenetStateOnLane(
-        ref_lane, vehicle.state(), nearby_vehicles, &has_leading_vehicle,
-        &leading_vehicle, &leading_frenet_state, &has_following_vehicle,
-        &following_vehicle, &following_frenet_state);
-
-    // ~ essemble
-    lanes.push_back(ref_lane);
-    leading_vehicles.push_back(leading_vehicle);
-    following_vehicles.push_back(following_vehicle);
-    leading_frenet_states.push_back(leading_frenet_state);
-    follow_frenet_states.push_back(following_frenet_state);
-  }
-
-  if (common::MobilBehaviorPrediction::LateralBehaviorPrediction(
-          vehicle, lanes, leading_vehicles, leading_frenet_states,
-          following_vehicles, follow_frenet_states, nearby_vehicles,
-          res) != kSuccess) {
-    return kWrongStatus;
-  }
-  return kSuccess;
-}
-
 ErrorType SemanticMapManager::GetLeadingAndFollowingVehiclesFrenetStateOnLane(
     const common::Lane &ref_lane, const common::State &ref_state,
     const common::VehicleSet &vehicle_set, bool *has_leading_vehicle,
@@ -274,10 +226,12 @@ ErrorType SemanticMapManager::UpdateSemanticVehicles() {
   for (const auto &v : surrounding_vehicles_.vehicles) {
     common::SemanticVehicle semantic_vehicle;
     semantic_vehicle.vehicle = v.second;
-    GetNearestLaneIdUsingState(
+    if (kSuccess != GetNearestLaneIdUsingState(
         semantic_vehicle.vehicle.state().ToXYTheta(), std::vector<int>(),
         &semantic_vehicle.nearest_lane_id, &semantic_vehicle.dist_to_lane,
-        &semantic_vehicle.arc_len_onlane);
+        &semantic_vehicle.arc_len_onlane)) {
+          printf("The vehicle (id: %d) cannot get nearest lane id.\n", v.second.id());
+        }
 
     NaiveRuleBasedLateralBehaviorPrediction(
         semantic_vehicle.vehicle, semantic_vehicle.nearest_lane_id,
@@ -288,10 +242,13 @@ ErrorType SemanticMapManager::UpdateSemanticVehicles() {
     decimal_t max_backward_len = 10.0;
     decimal_t forward_lane_len =
         std::max(semantic_vehicle.vehicle.state().velocity * 10.0, 50.0);
-    GetRefLaneForStateByBehavior(
+    if (kSuccess != GetRefLaneForStateByBehavior(
         semantic_vehicle.vehicle.state(), std::vector<int>(),
         semantic_vehicle.lat_behavior, forward_lane_len, max_backward_len,
-        false, &semantic_vehicle.lane);
+        false, &semantic_vehicle.lane)) {
+          printf("The vehicle (id: %d) cannot get ref lane by behavior.\n",
+              semantic_vehicle.vehicle.id());
+        }
 
     semantic_vehicles_tmp.semantic_vehicles.insert(
         std::pair<int, common::SemanticVehicle>(semantic_vehicle.vehicle.id(),
@@ -399,7 +356,6 @@ ErrorType SemanticMapManager::UpdateLocalLanesAndFastLut() {
                                              &dist_tmp, &arc_len_tmp)) {
     return kWrongStatus;
   }
-
   local_lanes_.clear();
   local_to_segment_lut_.clear();
   segment_to_local_lut_.clear();
@@ -407,6 +363,7 @@ ErrorType SemanticMapManager::UpdateLocalLanesAndFastLut() {
   // * currently we consider ego lane and its adjacent lanes (trunk lanes)
   std::vector<int> root_lane_ids;
   {
+    printf("Preparing dealing with root_lane_ids.\n");
     root_lane_ids.push_back(cur_lane_id);
     // ~ left
     if (whole_lane_net_.lane_set.at(cur_lane_id).l_lane_id > 0) {
@@ -529,7 +486,6 @@ void SemanticMapManager::GetAllForwardLaneIdPathsWithMinimumLengthByRecursion(
     const decimal_t &aggre_length, const std::vector<int> &path_to_node,
     std::vector<std::vector<int>> *all_paths) {
   // * Traverse FORWARD
-  // check cycle here?
 
   decimal_t node_aggre_length = node_length + aggre_length;
   auto path = path_to_node;
@@ -677,12 +633,6 @@ ErrorType SemanticMapManager::CheckCollisionUsingGlobalPosition(
                                                        res);
 }
 
-ErrorType SemanticMapManager::GetObstacleMapValueUsingGlobalPosition(
-    const Vec2f &p_w, ObstacleMapType *res) {
-  std::array<decimal_t, 2> p = {{p_w(0), p_w(1)}};
-  return obstacle_map_.GetValueUsingGlobalPosition(p, res);
-}
-
 ErrorType SemanticMapManager::IsTopologicallyReachable(
     const int lane_id, const std::vector<int> &path, int *num_lane_changes,
     bool *res) const {
@@ -789,9 +739,8 @@ ErrorType SemanticMapManager::GetNearestLaneIdUsingState(
     *distance = std::get<0>(*lanes_in_dist.begin());
     *arc_len = std::get<1>(*lanes_in_dist.begin());
     // printf(
-    //     "[GetNearestLaneIdUsingState]No suitable lane in %f m, use the
-    //     nearest " "one, dist: %lf, id: %d\n", nearest_lane_range_, *distance,
-    //     *id);
+    //     "[GetNearestLaneIdUsingState]No suitable lane in %lf m, \
+    //       use the nearest one, dist: %lf, id: %d \n", nearest_lane_range_, *distance, *id);
     return kSuccess;
   }
   // * Use the lane with minimum angle diff
@@ -841,6 +790,7 @@ ErrorType SemanticMapManager::UpdateKeyVehicles() {
                                  &cur_lane_dist, &cur_arc_len) != kSuccess) {
     return kWrongStatus;
   }
+  printf("ego_vehicle cur_arc_len: %lf\n", cur_arc_len);
 
   // Find key lane ids
   {
@@ -978,12 +928,13 @@ ErrorType SemanticMapManager::UpdateKeyVehicles() {
         }
       }
     }
+    std::cout << "[XXX] ";
+    for (const auto &id : key_vehicle_ids_) {
+    std::cout << id << " ";
+    }
+    std::cout << "\n";
   }
-  // std::cout << "[XXX] ";
-  // for (const auto &id : nearby_key_vehicle_ids) {
-  //   std::cout << id << " ";
-  // }
-  // std::cout << "\n";
+  
 #endif
 
   return kSuccess;
@@ -1166,12 +1117,13 @@ ErrorType SemanticMapManager::GetRefLaneForStateByBehavior(
 
   int target_lane_id;
   if (GetTargetLaneId(current_lane_id, behavior, &target_lane_id) != kSuccess) {
-    // printf(
-    //     "[GetRefLaneForStateByBehavior]fail to get target lane from lane %d "
-    //     "with behavior %d.\n",
-    //     current_lane_id, static_cast<int>(behavior));
+    printf(
+        "[GetRefLaneForStateByBehavior]fail to get target lane from lane %d "
+        "with behavior %d.\n",
+        current_lane_id, static_cast<int>(behavior));
     return kWrongStatus;
   }
+  printf("target lane id is: %d\n", target_lane_id);
 
   if (agent_config_info_.enable_fast_lane_lut && has_fast_lut_) {
     if (segment_to_local_lut_.end() !=
@@ -1194,6 +1146,7 @@ ErrorType SemanticMapManager::GetRefLaneForStateByBehavior(
   }
 
   if (kSuccess != GetLaneBySampledPoints(samples, is_high_quality, lane)) {
+    printf("[GetLaneBySampledPoints]Cannot get local lane by sampled points.\n");
     return kWrongStatus;
   }
 

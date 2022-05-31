@@ -38,9 +38,6 @@ class PhySimulation {
   common::VehicleSet vehicle_set() const { return vehicle_set_; }
   const std::vector<int> vehicle_ids() const { return vehicle_ids_; }
 
-  bool AddTemporaryObstacleToMap(const common::Point &pt, const double &size);
-  bool RemoveTemporaryObstacle(const common::Point &pt, const double &s);
-
   bool UpdateSimulatorUsingSignalSet(
       const common::VehicleControlSignalSet &signal_set, const decimal_t &dt);
 

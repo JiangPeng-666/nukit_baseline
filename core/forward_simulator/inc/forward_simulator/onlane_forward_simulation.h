@@ -156,6 +156,7 @@ class OnLaneForwardSimulation {
     return kSuccess;
   }
 
+  // propogate once in the occasion of lane keeping
   static ErrorType PropagateOnceAdvancedLK(
       const common::StateTransformer& stf, const common::Vehicle& ego_vehicle,
       const Vehicle& leading_vehicle, const decimal_t& lat_track_offset,
@@ -258,6 +259,7 @@ class OnLaneForwardSimulation {
     }
     steer = steer_calculation_failed ? current_state.steer : steer;
     decimal_t sim_vel = param.idm_param.kDesiredVelocity;
+    // printf("param.idm_param.kDesiredVelocity:%lf\n", sim_vel);
     if (param.auto_decelerate_if_lat_failed && steer_calculation_failed) {
       sim_vel = 0.0;
     }
@@ -289,7 +291,7 @@ class OnLaneForwardSimulation {
                                             &current_leading_fs) != kSuccess) {
       // ~ Without leading vehicle
       CalcualateVelocityUsingCtxIdm(
-          ego_on_tarlane_fs.vec_s[0], current_state.velocity,
+          ego_on_curlane_fs.vec_s[0], current_state.velocity,
           target_on_curlane_fs.vec_s[0], target_state.velocity, dt, sim_param,
           ctx_param, &velocity);
     } else {
@@ -303,7 +305,7 @@ class OnLaneForwardSimulation {
       sim_param.idm_param.kVehicleLength = eqv_vehicle_len;
 
       CalcualateVelocityUsingCtxIdm(
-          ego_on_tarlane_fs.vec_s[0], current_state.velocity,
+          ego_on_curlane_fs.vec_s[0], current_state.velocity,
           current_leading_fs.vec_s[0], current_leading_vehicle.state().velocity,
           target_on_curlane_fs.vec_s[0], target_state.velocity, dt, sim_param,
           ctx_param, &velocity);

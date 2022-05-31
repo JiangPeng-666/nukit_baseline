@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.13)
 project(ego_solver)
 
 set(CMAKE_VERBOSE_MAKEFILE "true")
@@ -31,7 +31,8 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/include
     /usr/include
     /usr/include/opencv4
-    /home/jp/anaconda3/envs/nuplan/include/python3.9
+    /home/lain/anaconda3/envs/nuplan_modified/include/python3.9
+    /home/lain/anaconda3/envs/nuplan_modified/include
     ${EIGEN3_INCLUDE_DIR}
 
 )
@@ -56,7 +57,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_library(py_solver_util SHARED
-    src/solver.cc
+    # src/solver.cc
     src/wrapper.cc
 )
 

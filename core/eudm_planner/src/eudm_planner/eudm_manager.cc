@@ -8,13 +8,14 @@ void EudmManager::Init(const std::string& config_path) {
   printf("Behavior planner initiation begin.\n");
   char pwd[255];
   std::string s_tmp;
-  s_tmp = getcwd(pwd, 255);
-  // run by VS Code, relative path of terminal and "Run Python File" are different
-  // int cur = s_tmp.size() - 1;
-  // while(pwd[cur] != '/') {cur--;}
-  // s_tmp = s_tmp.substr(0, cur + 1) + "logs/";
-  s_tmp += "/logs"; // modified for VS Code
+  // s_tmp = getcwd(pwd, 255);
+  // // run by VS Code, relative path of terminal and "Run Python File" are different
+  // // int cur = s_tmp.size() - 1;
+  // // while(pwd[cur] != '/') {cur--;}
+  // // s_tmp = s_tmp.substr(0, cur + 1) + "logs/";
+  // s_tmp += "/logs/"; // modified for VS Code
   
+  s_tmp = "/home/lain/jiangpeng/nukit_baseline/logs/";
   google::InitGoogleLogging("eudm");
   google::SetLogDestination(google::GLOG_INFO, (s_tmp +"info_log/").c_str());
   google::SetLogDestination(google::GLOG_WARNING, (s_tmp + "warn_log/").c_str());
@@ -39,7 +40,6 @@ ErrorType EudmManager::Prepare(
     const decimal_t stamp,
     const std::shared_ptr<semantic_map_manager::SemanticMapManager>& map_ptr,
     const planning::eudm::Task& task) {
-  if (map_ptr == nullptr) std::cout << "The map for preparation is invalid!!\n";
   map_adapter_.set_map(map_ptr);
 
   DcpAction desired_action;
@@ -55,6 +55,7 @@ ErrorType EudmManager::Prepare(
     return kWrongStatus;
   }
 
+  lc_context_.completed = true;
   if (lc_context_.completed) {
     desired_action.lat = DcpLatAction::kLaneKeeping;
   }
@@ -75,6 +76,7 @@ ErrorType EudmManager::Prepare(
     LOG(WARNING) << line_info.str();
   }
   {
+    lc_context_.type = LaneChangeTriggerType(0);
     std::ostringstream line_info;
     line_info << "[Eudm][Manager]LC context <completed, twa, tt, dt, l_id, "
                  "lat, type>:<"
@@ -142,7 +144,6 @@ ErrorType EudmManager::GenerateLaneChangeProposal(
     return kSuccess;
   }
 
-  // if stick not reset, will not try active lane change
   if (lc_context_.completed && task.user_perferred_behavior != 0) {
     preliminary_active_requests_.clear();
     LOG(WARNING) << std::fixed << std::setprecision(5)
@@ -163,15 +164,16 @@ ErrorType EudmManager::GenerateLaneChangeProposal(
     return kSuccess;
   }
 
-  if (stamp - last_lc_proposal_.trigger_time <
-      bp_.cfg().function().active_lc().cold_duration()) {
-    preliminary_active_requests_.clear();
-    LOG(WARNING) << std::fixed << std::setprecision(5)
-                 << "[Eudm][ActiveLc]Clear request due to cold down:" << stamp
-                 << " < " << last_lc_proposal_.trigger_time << " + "
-                 << bp_.cfg().function().active_lc().cold_duration();
-    return kSuccess;
-  }
+  // For debugging, we only compute one scenario, so we skip below block 
+  // if (stamp - last_lc_proposal_.trigger_time <
+  //     bp_.cfg().function().active_lc().cold_duration()) {
+  //   preliminary_active_requests_.clear();
+  //   LOG(WARNING) << std::fixed << std::setprecision(5)
+  //                << "[Eudm][ActiveLc]Clear request due to cold down:" << stamp
+  //                << " < " << last_lc_proposal_.trigger_time << " + "
+  //                << bp_.cfg().function().active_lc().cold_duration();
+  //   return kSuccess;
+  // }
 
   if (last_snapshot_.plan_state.velocity <
           bp_.cfg().function().active_lc().activate_speed_lower_bound() ||
@@ -179,8 +181,10 @@ ErrorType EudmManager::GenerateLaneChangeProposal(
           bp_.cfg().function().active_lc().activate_speed_upper_bound()) {
     preliminary_active_requests_.clear();
     LOG(WARNING) << std::fixed << std::setprecision(5)
-                 << "[Eudm][ActiveLc]Clear request due to illegal spd:"
-                 << last_snapshot_.plan_state.velocity << " at time " << stamp;
+                 << "[Eudm][ActiveLc]Clear request due to illegal velocity:"
+                 << last_snapshot_.plan_state.velocity << " at time " << stamp << "\tThe lower bound:"
+                 << bp_.cfg().function().active_lc().activate_speed_lower_bound() << "\tThe upper bound:"
+                 << bp_.cfg().function().active_lc().activate_speed_upper_bound();
     return kSuccess;
   }
 
@@ -214,6 +218,9 @@ ErrorType EudmManager::GenerateLaneChangeProposal(
   bp_.ClassifyActionSeq(
       last_snapshot_.action_script[last_snapshot_.original_winner_id],
       &operation_at_seconds, &lat_behavior, &is_cancel_behavior);
+  // modified by jiangpeng
+  is_cancel_behavior = false;
+  
   if (lat_behavior == LateralBehavior::kLaneKeeping || is_cancel_behavior) {
     LOG(WARNING) << std::fixed << std::setprecision(5)
                  << "[Eudm][ActiveLc]Clear request due to not ideal behavior:"
@@ -423,29 +430,38 @@ ErrorType EudmManager::ReselectByContext(const decimal_t stamp,
   return kSuccess;
 }
 
-std::vector<double> EudmManager::Run(
+std::vector<std::vector<double>> EudmManager::Run(
     const decimal_t stamp,
     const std::shared_ptr<semantic_map_manager::SemanticMapManager>& map_ptr,
     const planning::eudm::Task& task) {
-      std::vector<double> terminate;
+      std::vector<std::vector<double>> bp_res;
 
   // * I : Prepare
   if (Prepare(stamp, map_ptr, task) != kSuccess) {
     std::cout << "Failed preparing!\n";
-    return terminate;
+    return bp_res;
   }
   // * II : RunOnce
-  bp_.RunOnce();
+  printf("Behavior planning begin running once.\n");
+  if (kSuccess != bp_.RunOnce()) {
+    printf("Failed running behavior planner once.\n");
+    return bp_res;
+  }
   // * III: Summarize
   Snapshot snapshot;
   SaveSnapshot(&snapshot);
   // * IV: Reselect
-  ReselectByContext(stamp, snapshot, &snapshot.processed_winner_id);
+  if (kSuccess != ReselectByContext(stamp, snapshot, &snapshot.processed_winner_id)) {
+    LOG(WARNING) << "[Eudm][Fatal]Reselect failed.";
+    return bp_res;
+  }
+  LOG(WARNING) << "[Eudm]original id " << snapshot.original_winner_id
+               << " reselect : " << snapshot.processed_winner_id;
 
   std::vector<std::vector<double>> ego_traj;
   std::ostringstream line_info;
   for (auto& v : snapshot.forward_trajs[snapshot.processed_winner_id]) {
-    line_info << std::fixed << std::setprecision(5) << "<"<< v.state().time_stamp - stamp << "," 
+    line_info << std::fixed << std::setprecision(12) << "<"<< v.state().time_stamp - stamp << "," 
               << v.state().vec_position[0] << "," << v.state().vec_position[1] << ","  << v.state().velocity
               << "," << v.state().acceleration << "," << v.state().curvature<< ">";
     std::vector<double> traj_tmp;
@@ -456,17 +472,10 @@ std::vector<double> EudmManager::Run(
     traj_tmp.push_back(v.state().curvature);
     ego_traj.push_back(traj_tmp);
   }
-  // LOG(WARNING) << line_info.str();
+  LOG(WARNING) << line_info.str();
 
-  // printf("Following are the results of behavior planning.\n");
-  // for (int i = 0; i < ego_traj.size(); i++) {
-  //   std::cout << "x, y, velocity, acceleration, curvature:  "; 
-  //   for (int j = 0; j < ego_traj[i].size(); j++) {
-  //     std::cout << ego_traj[i][j] << ",";
-  //   }
-  //   std::cout << std::endl;
-  // }
-  // std::cout << "Total num of ego_traj: " << ego_traj.size() << std::endl;
+  if (!ego_traj.size()) return ego_traj;
+  std::cout << "Total num of ego_traj: " << ego_traj.size() << std::endl;
 
   map_adapter_.map()->GetRefLaneForStateByBehavior(
           snapshot.plan_state, std::vector<int>(),
@@ -475,9 +484,15 @@ std::vector<double> EudmManager::Run(
 
   last_snapshot_ = snapshot;
   GenerateLaneChangeProposal(stamp, task);
-  terminate.push_back(ego_traj[ego_traj.size() - 1][0]);
-  terminate.push_back(ego_traj[ego_traj.size() - 1][1]);
-  return terminate;
+  // * V: Update
+  context_.is_valid = true;
+  context_.seq_start_time = stamp;
+  context_.action_seq = snapshot.action_script[snapshot.processed_winner_id];
+
+  LOG(WARNING) << std::fixed << std::setprecision(4)
+               << "[Eudm]******************** RUN FINISH***************** ";
+
+  return ego_traj;
 }
 
 bool EudmManager::GetReplanDesiredAction(const decimal_t current_time,

@@ -27,6 +27,7 @@
 #include "phy_simulator/basics.h"
 #include "phy_simulator/phy_simulator.h"
 
+#include <glog/logging.h>
 
 namespace planning{
 class Solver{
@@ -71,7 +72,7 @@ private:
   int ego_id = 0;
 
   // ssc
-  decimal_t work_rate_ = 20.0;
+  decimal_t work_rate_ = 3.0;
   decimal_t plan_horizon = 1.0 / work_rate_;
   common::State desired_state;
   decimal_t t = 0.0;

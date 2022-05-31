@@ -228,15 +228,11 @@ ErrorType Lane::GetArcLengthByVecPositionWithInitialGuess(
 
     if (x + dx > val_ub) {
       x = val_ub;
-      // printf(
-      //     "[Lane]GetArcLengthByVecPosition - Out of range, use upper
-      //     bound\n");
+      // printf("[Lane]GetArcLengthByVecPosition - Out of range, use upper bound\n");
       break;
     } else if (x + dx < val_lb) {
       x = val_lb;
-      // printf(
-      //     "[Lane]GetArcLengthByVecPosition - Out of range, use lower
-      //     bound\n");
+      // printf("[Lane]GetArcLengthByVecPosition - Out of range, use lower bound\n");
       break;
     }
 

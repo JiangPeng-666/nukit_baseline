@@ -59,6 +59,8 @@ class EudmPlannerMapItf {
       const common::VehicleParam &param_a, const common::State &state_a,
       const common::VehicleParam &param_b, const common::State &state_b,
       bool *res) = 0;
+  virtual ErrorType CheckIfCollision(const common::VehicleParam &vehicle_param,
+                                    const State &state, bool *res) = 0;
   virtual ErrorType GetLeadingVehicleOnLane(
       const common::Lane &ref_lane, const common::State &ref_state,
       const common::VehicleSet &vehicle_set, const decimal_t &lat_range,
